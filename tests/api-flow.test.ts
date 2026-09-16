@@ -7,9 +7,10 @@ import { PDFDocument } from "pdf-lib";
 import { store } from "../src/server/store";
 import { newPage, type Book } from "../src/domain/book";
 import { POST as createProject } from "../src/app/api/projects/route";
-import { PUT as saveProject } from "../src/app/api/projects/[id]/route";
+import { PUT as saveProject, DELETE as deleteProject } from "../src/app/api/projects/[id]/route";
 import { POST as uploadAsset } from "../src/app/api/assets/route";
 import { POST as exportProject } from "../src/app/api/export/route";
+import { POST as outlineProject } from "../src/app/api/outline/route";
 import { GET as readSettings } from "../src/app/api/settings/route";
 
 let root: string;
@@ -110,5 +111,22 @@ describe("offline route-to-file workflow, without network or paid generation", (
       }),
     );
     expect(response.status).toBe(403);
+  });
+  it("rejects an odd outline target page count before any model call", async () => {
+    const response = await outlineProject(
+      request("/api/outline", { projectId: crypto.randomUUID(), targetPages: 25 }),
+    );
+    expect(response.status).toBe(400);
+  });
+  it("requires an existing project and blocks deleting a missing one", async () => {
+    const missing = crypto.randomUUID();
+    const response = await deleteProject(
+      new Request(`http://127.0.0.1:3210/api/projects/${missing}`, {
+        method: "DELETE",
+        headers: { host: "127.0.0.1:3210", origin: "http://127.0.0.1:3210" },
+      }),
+      { params: Promise.resolve({ id: missing }) },
+    );
+    expect(response.status).toBe(404);
   });
 });
