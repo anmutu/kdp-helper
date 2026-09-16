@@ -442,8 +442,12 @@ export default function Workbench() {
               {stage === 3 && (
                 <ExportStage
                   store={store}
-                  goToPage={(id) => {
-                    if (id) setSelectedId(id);
+                  goToIssue={(issue) => {
+                    if (issue.code.startsWith("cover-")) {
+                      navigate(2);
+                      return;
+                    }
+                    if (issue.pageId) setSelectedId(issue.pageId);
                     navigate(0);
                   }}
                 />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowUpRight, Check, Download, FileCheck2, TriangleAlert } from "lucide-react";
-import type { Book, ExportResult } from "@/domain/book";
+import type { Book, ExportResult, Issue } from "@/domain/book";
 import { coverGeometry, pageGeometry, sizeLabel, validateBook } from "@/domain/print-spec";
 import { Field } from "./controls";
 import { exportIssues, type ExportTarget } from "./ui-helpers";
@@ -8,10 +8,10 @@ import type { Workbench } from "./use-workbench";
 
 export function ExportStage({
   store,
-  goToPage,
+  goToIssue,
 }: {
   store: Workbench;
-  goToPage: (id?: string) => void;
+  goToIssue: (issue: Issue) => void;
 }) {
   const book = store.book as Book;
   const [reviewedSnapshot, setReviewedSnapshot] = useState("");
@@ -101,7 +101,7 @@ export function ExportStage({
               <li key={`${issue.code}-${issue.pageId}-${index}`}>
                 <TriangleAlert size={17} />
                 <span>{issue.message}</span>
-                <button className="text-button" onClick={() => goToPage(issue.pageId)}>
+                <button className="text-button" onClick={() => goToIssue(issue)}>
                   去处理
                 </button>
               </li>
