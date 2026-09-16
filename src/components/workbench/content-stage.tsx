@@ -24,6 +24,7 @@ import {
   pageGeometry,
   pageRange,
   pixelRequirements,
+  printingCostEstimate,
   RULES,
   selectedAsset,
   sizeLabel,
@@ -156,6 +157,12 @@ export function SpecEditor({
           <span>
             图片至少 <strong>{RULES.dpi} DPI</strong>
           </span>
+          {book.pages.length > 0 && (
+            <span>
+              单册印刷成本（美区估算）{" "}
+              <strong>US ${printingCostEstimate(book.config, book.pages.length).toFixed(2)}</strong>
+            </span>
+          )}
           <span>
             当前 <strong>{book.pages.length} 页</strong>
           </span>
@@ -189,6 +196,9 @@ export function SpecEditor({
         </a>
         <a href={RULES.calculatorUrl} target="_blank" rel="noreferrer">
           封面计算器 <ArrowUpRight size={12} />
+        </a>
+        <a href={RULES.printCostUrl} target="_blank" rel="noreferrer">
+          印刷成本 <ArrowUpRight size={12} />
         </a>
       </div>
     </section>

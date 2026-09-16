@@ -17,6 +17,7 @@ import {
   pixelRequirements,
   effectiveDpi,
   pageRange,
+  printingCostEstimate,
   sizeLabel,
   validateBook,
   specKey,
@@ -136,6 +137,18 @@ describe("KDP official print constraints", () => {
     );
     expect(aspectRatioLabel({ x: 0, y: 0, width: 650.25, height: 738 })).toBe(
       "≈ 0.88 : 1（宽 : 高）",
+    );
+  });
+  it("estimates US large-trim printing cost from official tiers", () => {
+    const black: PrintConfig = { trim: "8.5x8.5", ink: "black", bleed: false, paper: "cream" };
+    expect(printingCostEstimate(black, 26)).toBeCloseTo(2.84, 2);
+    expect(printingCostEstimate(black, 110)).toBeCloseTo(2.84, 2);
+    expect(printingCostEstimate(black, 112)).toBeCloseTo(1.0 + 0.017 * 112, 2);
+    expect(printingCostEstimate({ ...black, ink: "premium" }, 32)).toBeCloseTo(4.2, 2);
+    expect(printingCostEstimate({ ...black, ink: "premium" }, 42)).toBeCloseTo(1.0 + 0.08 * 42, 2);
+    expect(printingCostEstimate({ ...black, ink: "standard" }, 72)).toBeCloseTo(
+      1.0 + 0.0402 * 72,
+      2,
     );
   });
   it("requires 72 pages for standard color and an explicitly even page count", () => {

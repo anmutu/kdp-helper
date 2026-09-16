@@ -16,6 +16,8 @@ export const RULES = {
   manuscriptUrl: "https://kdp.amazon.com/en_US/help/topic/G201857950",
   coverUrl: "https://kdp.amazon.com/en_US/help/topic/G201953020",
   calculatorUrl: "https://kdp.amazon.com/cover-calculator",
+  printCostUrl: "https://kdp.amazon.com/en_US/help/topic/G201834340",
+  printCostCheckedAt: "2026-09-18",
   trims: {
     "8.25x8.25": {
       label: "经典方形",
@@ -173,6 +175,15 @@ export function sizeLabel(widthInches: number, heightInches: number) {
 }
 export function aspectRatioLabel(rect: Rect) {
   return `≈ ${(rect.width / rect.height).toFixed(2)} : 1（宽 : 高）`;
+}
+// 美区（amazon.com）大尺寸平装单册印刷成本，公式：固定成本 + 页数 × 每页成本。
+// 来源：RULES.printCostUrl，核对日期见 printCostCheckedAt。本工具四种开本
+// 宽度均大于 6.12 英寸，全部落在官方 Large trim 档位；页数边界按官方表
+// 「24–110 为固定成本」处理为 ≤110 固定、>110 按页计费（高级彩 ≤40 固定）。
+export function printingCostEstimate(config: PrintConfig, pageCount: number) {
+  if (config.ink === "black") return pageCount <= 110 ? 2.84 : 1.0 + 0.017 * pageCount;
+  if (config.ink === "standard") return 1.0 + 0.0402 * pageCount;
+  return pageCount <= 40 ? 4.2 : 1.0 + 0.08 * pageCount;
 }
 export function effectiveDpi(asset: Pick<Asset, "width" | "height">, rect: Rect, zoom = 1) {
   return Math.min(asset.width / (rect.width / 72), asset.height / (rect.height / 72)) / zoom;
