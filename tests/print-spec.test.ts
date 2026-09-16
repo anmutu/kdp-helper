@@ -10,12 +10,14 @@ import {
 } from "../src/domain/book";
 import {
   RULES,
+  aspectRatioLabel,
   coverGeometry,
   generationAdequacy,
   pageGeometry,
   pixelRequirements,
   effectiveDpi,
   pageRange,
+  sizeLabel,
   validateBook,
   specKey,
   spineCoefficient,
@@ -123,6 +125,18 @@ describe("KDP official print constraints", () => {
     expect(styleAfterInkChange("premium", defaultBlackWhiteStyle)).toBe(defaultColorStyle);
     const custom = "我自己的画风";
     expect(styleAfterInkChange("black", custom)).toBe(custom);
+  });
+  it("reports sizes in inches and millimeters side by side", () => {
+    expect(sizeLabel(8.5, 8.5)).toBe("8.500 × 8.500 in（215.9 × 215.9 mm）");
+    expect(sizeLabel(8.625, 8.75)).toBe("8.625 × 8.750 in（219.1 × 222.3 mm）");
+  });
+  it("describes the target art aspect ratio for a layout", () => {
+    expect(aspectRatioLabel({ x: 0, y: 0, width: 540, height: 367.2 })).toBe(
+      "≈ 1.47 : 1（宽 : 高）",
+    );
+    expect(aspectRatioLabel({ x: 0, y: 0, width: 650.25, height: 738 })).toBe(
+      "≈ 0.88 : 1（宽 : 高）",
+    );
   });
   it("requires 72 pages for standard color and an explicitly even page count", () => {
     const book = createBook("试做");

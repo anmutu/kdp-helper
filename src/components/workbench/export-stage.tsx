@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowUpRight, Check, Download, FileCheck2, TriangleAlert } from "lucide-react";
 import type { Book, ExportResult } from "@/domain/book";
-import { coverGeometry, pageGeometry, validateBook } from "@/domain/print-spec";
+import { coverGeometry, pageGeometry, sizeLabel, validateBook } from "@/domain/print-spec";
 import { Field } from "./controls";
 import { exportIssues, type ExportTarget } from "./ui-helpers";
 import type { Workbench } from "./use-workbench";
@@ -81,18 +81,12 @@ export function ExportStage({
             <div>
               <span>内页 PDF</span>
               <strong>{book.pages.length} 页 · 单页序列</strong>
-              <small>
-                {(interior.width / 72).toFixed(3)} × {(interior.height / 72).toFixed(3)} in
-              </small>
+              <small>{sizeLabel(interior.width / 72, interior.height / 72)}</small>
             </div>
             <div>
               <span>封面 PDF</span>
               <strong>{target === "interior" ? "本次不检查、不导出" : "封底 + 书脊 + 封面"}</strong>
-              {target === "all" && (
-                <small>
-                  {(cover.width / 72).toFixed(3)} × {(cover.height / 72).toFixed(3)} in
-                </small>
-              )}
+              {target === "all" && <small>{sizeLabel(cover.width / 72, cover.height / 72)}</small>}
             </div>
           </div>
           {!errors.length && (

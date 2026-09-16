@@ -18,6 +18,7 @@ import {
 } from "@/domain/book";
 import {
   alphabetPages,
+  aspectRatioLabel,
   effectiveDpi,
   inkLabel,
   pageGeometry,
@@ -25,6 +26,7 @@ import {
   pixelRequirements,
   RULES,
   selectedAsset,
+  sizeLabel,
 } from "@/domain/print-spec";
 import { Field, Modal, UploadButton } from "./controls";
 import { PagePreview } from "./book-preview";
@@ -138,6 +140,12 @@ export function SpecEditor({
           </Field>
         </div>
         <div className="spec-facts">
+          <span>
+            成品{" "}
+            <strong>
+              {sizeLabel(RULES.trims[book.config.trim].width, RULES.trims[book.config.trim].height)}
+            </strong>
+          </span>
           <span>
             内页{" "}
             <strong>
@@ -267,18 +275,22 @@ export function PageList({
 
 export function PageMetrics({ book, page, index }: { book: Book; page: BookPage; index: number }) {
   const geometry = pageGeometry(book.config, book.pages.length, index, page.layout);
+  const trim = RULES.trims[book.config.trim];
   const pixels = pixelRequirements(geometry.image);
   const asset = selectedAsset(page);
   const dpi = asset ? Math.floor(effectiveDpi(asset, geometry.image, page.zoom)) : null;
   return (
     <div className="page-metrics">
+      <span>成品 {sizeLabel(trim.width, trim.height)}</span>
       <span>
-        {(geometry.width / 72).toFixed(3)} × {(geometry.height / 72).toFixed(3)} in · 含所选出血
+        文件 {sizeLabel(geometry.width / 72, geometry.height / 72)}
+        {book.config.bleed ? " · 含出血" : " · 与成品相同"}
       </span>
       {page.kind === "illustration" && (
         <>
           <span>
-            需 {pixels.width} × {pixels.height} px（300 DPI，缩放前）
+            画面 {aspectRatioLabel(geometry.image)} · 需 {pixels.width} × {pixels.height} px（300
+            DPI，缩放前）
           </span>
           <span className={dpi !== null && dpi < 300 ? "warning-text" : ""}>
             有效 DPI：{dpi ?? "尚未选图"}

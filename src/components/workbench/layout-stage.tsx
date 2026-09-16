@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Book, BookPage } from "@/domain/book";
-import { coverGeometry, effectiveDpi, selectedAsset } from "@/domain/print-spec";
+import { coverGeometry, effectiveDpi, selectedAsset, sizeLabel } from "@/domain/print-spec";
 import { Field } from "./controls";
 import { CoverPreview, PagePreview } from "./book-preview";
 import { PageList, PageMetrics } from "./content-stage";
@@ -176,10 +176,10 @@ export function LayoutStage({
               <CoverPreview book={book} />
             </div>
             <div className="page-metrics">
+              <span>展开尺寸 {sizeLabel(cover.width / 72, cover.height / 72)}</span>
               <span>
-                展开尺寸 {(cover.width / 72).toFixed(3)} × {(cover.height / 72).toFixed(3)} in
+                书脊 {(cover.spine / 72).toFixed(4)} in（{(cover.spine * 0.352778).toFixed(2)} mm）
               </span>
-              <span>书脊 {(cover.spine / 72).toFixed(4)} in</span>
               <span
                 className={
                   coverAsset && effectiveDpi(coverAsset, cover.image) < 300 ? "warning-text" : ""

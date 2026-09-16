@@ -168,6 +168,12 @@ export function pixelRequirements(rect: Rect) {
     height: Math.ceil((rect.height / 72) * RULES.dpi),
   };
 }
+export function sizeLabel(widthInches: number, heightInches: number) {
+  return `${widthInches.toFixed(3)} × ${heightInches.toFixed(3)} in（${(widthInches * 25.4).toFixed(1)} × ${(heightInches * 25.4).toFixed(1)} mm）`;
+}
+export function aspectRatioLabel(rect: Rect) {
+  return `≈ ${(rect.width / rect.height).toFixed(2)} : 1（宽 : 高）`;
+}
 export function effectiveDpi(asset: Pick<Asset, "width" | "height">, rect: Rect, zoom = 1) {
   return Math.min(asset.width / (rect.width / 72), asset.height / (rect.height / 72)) / zoom;
 }
