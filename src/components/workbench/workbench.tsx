@@ -15,6 +15,7 @@ import {
   Plus,
   Settings2,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 import type { PrintConfig } from "@/domain/book";
@@ -244,6 +245,24 @@ export default function Workbench() {
             >
               <Plus size={18} />
             </button>
+            {book && (
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="删除当前绘本"
+                disabled={store.locked}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `删除《${book.name || "未命名绘本"}》？将删除这本书的项目文件和本机候选图片，已导出的 PDF 会保留。此操作不可撤销。`,
+                    )
+                  )
+                    void store.remove(book.id);
+                }}
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
           </div>
           <div
             className={`save-status ${store.saveState === "error" || store.conflict ? "warning-text" : ""}`}

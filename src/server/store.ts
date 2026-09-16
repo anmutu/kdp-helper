@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile, rename, readdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rename, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { z } from "zod";
@@ -83,6 +83,32 @@ export class Store {
     const book = createBook(z.string().trim().min(1).max(200).parse(name));
     await this.atomic(`projects/${book.id}.json`, book);
     return book;
+  }
+  async delete(id: string) {
+    identifier.parse(id);
+    return this.lock(id, async () => {
+      await this.read(id);
+      let assetFiles: string[] = [];
+      try {
+        assetFiles = (await readdir(path.join(this.root, "assets"))).filter((file) =>
+          file.endsWith(".json"),
+        );
+      } catch {
+        assetFiles = [];
+      }
+      for (const file of assetFiles) {
+        let meta: { projectId: string } | null = null;
+        try {
+          meta = await this.json<{ projectId: string }>(`assets/${file}`);
+        } catch {
+          meta = null;
+        }
+        if (meta?.projectId !== id) continue;
+        await rm(path.join(this.root, "assets", file.replace(/\.json$/, ".png")), { force: true });
+        await rm(path.join(this.root, "assets", file), { force: true });
+      }
+      await rm(path.join(this.root, "projects", `${id}.json`), { force: true });
+    });
   }
   async canonicalize(book: Book) {
     if (new Set(book.pages.map((page) => page.id)).size !== book.pages.length)

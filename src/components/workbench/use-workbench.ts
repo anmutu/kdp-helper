@@ -287,6 +287,32 @@ export function useWorkbench() {
       install(result.book);
     });
 
+  const remove = (id: string) =>
+    run("正在删除绘本…", async () => {
+      await request<{ deleted: boolean }>(`/api/projects/${id}`, { method: "DELETE" });
+      const remaining = (await request<{ projects: Book[] }>("/api/projects")).projects;
+      setProjects(remaining);
+      if (current.current?.id === id) {
+        current.current = null;
+        revision.current = 0;
+        persisted.current = 0;
+        pausedAutosave.current = false;
+        blocked.current = false;
+        taskActive.current = false;
+        setBook(null);
+        setJobs([]);
+        setConflict(false);
+        setSaveState("saved");
+        if (remaining[0]) {
+          const [project, tasks] = await Promise.all([
+            request<{ book: Book }>(`/api/projects/${remaining[0].id}`),
+            request<{ jobs: Job[] }>(`/api/jobs?projectId=${remaining[0].id}`),
+          ]);
+          install(project.book, tasks.jobs);
+        }
+      }
+    });
+
   const generate = (targetIds: string[], count: number, sample: boolean) =>
     run("正在提交生图任务…", async (saved) => {
       if (!saved?.specConfirmed) throw new Error("请先保存并重新确认出版规格。");
@@ -384,6 +410,7 @@ export function useWorkbench() {
     open,
     reload,
     upload,
+    remove,
     generate,
     pause,
     outline,

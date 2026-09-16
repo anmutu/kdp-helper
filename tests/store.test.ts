@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import sharp from "sharp";
 import { Store } from "../src/server/store";
 import { checkLocalRequest } from "../src/server/security";
 
@@ -37,6 +38,25 @@ describe("local persistence and request boundary", () => {
     await writeFile(file, "broken");
     await expect(store.read(book.id)).rejects.toThrow();
     expect(await readFile(file, "utf8")).toBe("broken");
+  });
+  it("deletes a project and only its own assets, keeping other books and exports", async () => {
+    const store = await setup();
+    const book = await store.create("要删的书");
+    const keeper = await store.create("保留的书");
+    const bytes = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: "#ffffff" },
+    })
+      .png()
+      .toBuffer();
+    const asset = await store.addAsset(book.id, bytes, "import");
+    const otherAsset = await store.addAsset(keeper.id, bytes, "import");
+    await store.delete(book.id);
+    await expect(store.read(book.id)).rejects.toThrow("不存在");
+    const listing = await store.list();
+    expect(listing.map((item) => item.id)).toEqual([keeper.id]);
+    await expect(store.asset(asset.id)).rejects.toThrow("不存在");
+    expect((await store.asset(otherAsset.id)).projectId).toBe(keeper.id);
+    await expect(store.delete(book.id)).rejects.toThrow("不存在");
   });
   it("rejects remote hosts and cross-site writes", () => {
     expect(() =>
