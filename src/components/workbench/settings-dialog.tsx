@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Check, KeyRound } from "lucide-react";
-import type { PublicSettings } from "@/domain/book";
+import type { Book, PublicSettings } from "@/domain/book";
+import { generationAdequacy } from "@/domain/print-spec";
 import { Field, Modal } from "./controls";
 import { request } from "./ui-helpers";
 
-export function SettingsDialog({ close }: { close: () => void }) {
+export function SettingsDialog({ book, close }: { book: Book | null; close: () => void }) {
   const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [apiKey, setApiKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -122,7 +123,7 @@ export function SettingsDialog({ close }: { close: () => void }) {
             </div>
             <Field
               label="请求图片尺寸"
-              hint="如 1024x1024。尺寸须由模型支持；默认尺寸通常仅供低清试画，服务端会在正式生图前检查。"
+              hint="如 1024x1024。尺寸须由模型支持；下方按当前绘本的版式估算有效 DPI，服务端会在正式生图前再次检查。"
             >
               <input
                 required
@@ -130,6 +131,24 @@ export function SettingsDialog({ close }: { close: () => void }) {
                 onChange={(event) => update({ imageSize: event.target.value })}
               />
             </Field>
+            {(() => {
+              const match = settings.imageSize.match(/^(\d{3,5})x(\d{3,5})$/);
+              const width = match ? Number(match[1]) : 0;
+              const height = match ? Number(match[2]) : 0;
+              if (!book || !width || !height) return null;
+              return (
+                <div className="page-metrics">
+                  {generationAdequacy(book.config, book.pages.length, { width, height }).map(
+                    (row) => (
+                      <span key={row.label} className={row.ok ? "success" : "warning-text"}>
+                        {row.label}：约 {row.dpi} DPI
+                        {row.ok ? " · 可印刷" : " · 不足 300，只能低清试画"}
+                      </span>
+                    ),
+                  )}
+                </div>
+              );
+            })()}
             <label className="check-row">
               <input
                 type="checkbox"

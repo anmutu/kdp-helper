@@ -174,11 +174,15 @@ export async function generateImage(
   throw new ProviderError("返回图片为空，结果未知。", true);
 }
 
-export async function generateOutline(settings: Settings, book: Book): Promise<BookPage[]> {
+export async function generateOutline(
+  settings: Settings,
+  book: Book,
+  targetPages: number,
+): Promise<BookPage[]> {
   if (!settings.apiKey || !settings.textModel)
     throw new AppError("请配置 API Key 和文字模型，或直接手动填写页面。");
   if (!book.theme.trim()) throw new AppError("请先填写这本书的主题。");
-  const prompt = `为一本儿童绘本起草逐页内容。主题：${book.theme}。读者：${book.audience}。正文语言：${book.language}。返回纯 JSON 对象 {"pages":[{"title":"","text":"","prompt":"英文插画描述","kind":"illustration或text"}]}。最多32页。不生成版权声明，不添加虚假作者、授权、ISBN信息。图片描述不含画面内文字。内容是需作者审阅的草稿。`;
+  const prompt = `为一本儿童绘本起草逐页内容。主题：${book.theme}。读者：${book.audience}。正文语言：${book.language}。整本书恰好 ${targetPages} 页，页数必须是偶数，不要多也不要少。返回纯 JSON 对象 {"pages":[{"title":"","text":"","prompt":"英文插画描述","kind":"illustration或text"}]}。其中恰好一页是「关于这本书」版权页，其文字必须原样使用「请在此填写真实的版权信息和素材声明。」作为占位符。不生成其他版权声明，不添加虚假作者、授权、ISBN信息。图片描述不含画面内文字。内容是需作者审阅的草稿。`;
   let response: Response;
   try {
     response = await fetch(`${providerUrl(settings.baseUrl)}/chat/completions`, {

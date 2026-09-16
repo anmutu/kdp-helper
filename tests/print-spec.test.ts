@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { newPage, printConfigSchema, type Book, type PrintConfig } from "../src/domain/book";
+import {
+  defaultBlackWhiteStyle,
+  defaultColorStyle,
+  newPage,
+  printConfigSchema,
+  styleAfterInkChange,
+  type Book,
+  type PrintConfig,
+} from "../src/domain/book";
 import {
   RULES,
   coverGeometry,
+  generationAdequacy,
   pageGeometry,
   pixelRequirements,
   effectiveDpi,
@@ -83,6 +92,37 @@ describe("KDP official print constraints", () => {
       printConfigSchema.safeParse({ trim: "8.5x8.5", ink: "black", bleed: false, paper: "white" })
         .success,
     ).toBe(true);
+  });
+  it("supports the classic 8.25x8.25 square trim with official ranges", () => {
+    expect(pageRange({ trim: "8.25x8.25", ink: "black", bleed: false, paper: "white" })).toEqual({
+      min: 24,
+      max: 800,
+    });
+    expect(pageRange({ trim: "8.25x8.25", ink: "black", bleed: false, paper: "cream" })).toEqual({
+      min: 24,
+      max: 750,
+    });
+    expect(pageRange({ trim: "8.25x8.25", ink: "premium", bleed: false, paper: "white" })).toEqual({
+      min: 24,
+      max: 800,
+    });
+    expect(pageRange({ trim: "8.25x8.25", ink: "standard", bleed: false, paper: "white" })).toEqual(
+      { min: 72, max: 600 },
+    );
+  });
+  it("reports whether the configured request size can print each layout", () => {
+    const black: PrintConfig = { trim: "8.5x8.5", ink: "black", bleed: false, paper: "cream" };
+    const tooSmall = generationAdequacy(black, 26, { width: 1024, height: 1024 });
+    expect(tooSmall.map((row) => row.ok)).toEqual([false, false, false]);
+    const adequate = generationAdequacy(black, 26, { width: 2800, height: 2800 });
+    expect(adequate.map((row) => row.ok)).toEqual([true, true, true]);
+    expect(adequate[2].label).toBe("封面");
+  });
+  it("swaps the default art style only when it was never customized", () => {
+    expect(styleAfterInkChange("black", defaultColorStyle)).toBe(defaultBlackWhiteStyle);
+    expect(styleAfterInkChange("premium", defaultBlackWhiteStyle)).toBe(defaultColorStyle);
+    const custom = "我自己的画风";
+    expect(styleAfterInkChange("black", custom)).toBe(custom);
   });
   it("requires 72 pages for standard color and an explicitly even page count", () => {
     const book = createBook("试做");

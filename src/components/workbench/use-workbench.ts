@@ -346,13 +346,13 @@ export function useWorkbench() {
       { allowTask: true },
     );
 
-  const outline = () =>
+  const outline = (targetPages: number) =>
     run("正在整理文字草稿…", async (saved) => {
       if (!saved?.specConfirmed) throw new Error("请先保存并确认出版规格。");
       return (
         await request<{ pages: BookPage[] }>("/api/outline", {
           method: "POST",
-          body: JSON.stringify({ projectId: saved.id }),
+          body: JSON.stringify({ projectId: saved.id, targetPages }),
         })
       ).pages;
     });

@@ -1,4 +1,5 @@
 import {
+  defaultColorStyle,
   newPage,
   type Asset,
   type Book,
@@ -16,6 +17,14 @@ export const RULES = {
   coverUrl: "https://kdp.amazon.com/en_US/help/topic/G201953020",
   calculatorUrl: "https://kdp.amazon.com/cover-calculator",
   trims: {
+    "8.25x8.25": {
+      label: "经典方形",
+      width: 8.25,
+      height: 8.25,
+      premiumMax: 800,
+      blackWhiteMax: 800,
+      blackCreamMax: 750,
+    },
     "8.5x8.5": {
       label: "方形绘本",
       width: 8.5,
@@ -165,6 +174,22 @@ export function effectiveDpi(asset: Pick<Asset, "width" | "height">, rect: Rect,
 export function selectedAsset(target: { selectedAssetId: string | null; candidates: Asset[] }) {
   return target.candidates.find((asset) => asset.id === target.selectedAssetId);
 }
+export function generationAdequacy(
+  config: PrintConfig,
+  pageCount: number,
+  size: { width: number; height: number },
+) {
+  const count = Math.max(pageCount, 24);
+  const rows = [
+    { label: "图文分区", rect: pageGeometry(config, count, 0, "caption").image },
+    { label: "整页画面", rect: pageGeometry(config, count, 1, "full").image },
+    { label: "封面", rect: coverGeometry(config, count).image },
+  ];
+  return rows.map((row) => {
+    const dpi = Math.floor(effectiveDpi(size, row.rect));
+    return { label: row.label, dpi, ok: dpi >= RULES.dpi };
+  });
+}
 
 export function validateBook(book: Book): Issue[] {
   const issues: Issue[] = [];
@@ -234,7 +259,7 @@ export function createBook(name: string): Book {
     theme: "",
     language: "English",
     audience: "3–6 岁",
-    style: "温暖简洁的水彩插画，柔和自然的颜色，清晰的主体，统一的画风；图片内不绘制文字。",
+    style: defaultColorStyle,
     referenceAssetId: null,
     pages: [],
     cover: {

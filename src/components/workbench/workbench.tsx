@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import type { PrintConfig } from "@/domain/book";
+import { styleAfterInkChange } from "@/domain/book";
 import { inkLabel, paperLabel, RULES } from "@/domain/print-spec";
 import { ContentStage, TrimPresets } from "./content-stage";
 import { GenerationStage } from "./generation-stage";
@@ -144,6 +145,7 @@ export default function Workbench() {
     if (!created) return;
     store.edit((draft) => {
       draft.config = { trim, ink, bleed, paper };
+      draft.style = styleAfterInkChange(ink, draft.style);
     });
     setNewOpen(false);
     setStage(0);
@@ -479,7 +481,7 @@ export default function Workbench() {
           <span>用心创作，认真印刷。</span>
         </footer>
       </div>
-      {settingsOpen && <SettingsDialog close={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsDialog book={book} close={() => setSettingsOpen(false)} />}
       {newOpen && (
         <Modal title="新的一本，新的开始" close={() => setNewOpen(false)} busy={!!store.busy}>
           <form

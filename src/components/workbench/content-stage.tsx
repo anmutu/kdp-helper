@@ -9,7 +9,13 @@ import {
   Trash2,
   WandSparkles,
 } from "lucide-react";
-import { newPage, type Book, type BookPage, type PrintConfig } from "@/domain/book";
+import {
+  newPage,
+  styleAfterInkChange,
+  type Book,
+  type BookPage,
+  type PrintConfig,
+} from "@/domain/book";
 import {
   alphabetPages,
   effectiveDpi,
@@ -71,9 +77,13 @@ export function SpecEditor({
       draft.config = { ...draft.config, ...patch };
     });
   const changeInk = (ink: PrintConfig["ink"]) =>
-    update({
-      ink,
-      ...(ink !== "black" && book.config.paper === "cream" ? { paper: "white" as const } : {}),
+    edit((draft) => {
+      draft.config = {
+        ...draft.config,
+        ink,
+        ...(ink !== "black" && draft.config.paper === "cream" ? { paper: "white" as const } : {}),
+      };
+      draft.style = styleAfterInkChange(ink, draft.style);
     });
   return (
     <section className="panel spec-panel" aria-labelledby="spec-heading">
@@ -91,7 +101,7 @@ export function SpecEditor({
             label="印刷方式"
             hint={
               book.config.ink === "black"
-                ? "黑白印刷：建议在整本画风中写明黑白或灰度插画，避免生成彩色图。"
+                ? "黑白印刷：默认画风会自动换成黑白插画，仍可自行修改。"
                 : undefined
             }
           >
@@ -291,6 +301,10 @@ export function ContentStage({
 }) {
   const { book, edit, locked } = store;
   const [outline, setOutline] = useState<BookPage[] | null>(null);
+  const [targetPages, setTargetPages] = useState(() => {
+    const current = store.book?.pages.length || 32;
+    return Math.min(60, Math.max(4, Math.ceil(current / 2) * 2));
+  });
   if (!book) return null;
   const index = book.pages.findIndex((page) => page.id === selectedId);
   const page = book.pages[index];
@@ -299,9 +313,13 @@ export function ContentStage({
       Object.assign(draft.pages[index], patch);
     });
   async function requestOutline() {
-    if (!window.confirm("将调用文字模型整理候选草稿，费用未知。不会自动替换现有内页。是否继续？"))
+    if (
+      !window.confirm(
+        `将调用文字模型按目标 ${targetPages} 页（偶数）整理候选草稿，费用未知。不会自动替换现有内页。是否继续？`,
+      )
+    )
       return;
-    const pages = await store.outline();
+    const pages = await store.outline(targetPages);
     if (pages) setOutline(pages);
   }
   return (
@@ -417,6 +435,18 @@ export function ContentStage({
             <p>32 页 A–Z 动物模板只是示例。第 2 页版权文字是草稿，必须改为真实声明。</p>
           </div>
           <div className="button-row">
+            <Field label="目标页数" hint="文字模型按此页数起草，必须是偶数。">
+              <input
+                type="number"
+                min={4}
+                max={60}
+                step={2}
+                value={targetPages}
+                onChange={(event) =>
+                  setTargetPages(Math.min(60, Math.max(4, Number(event.target.value) || 4)))
+                }
+              />
+            </Field>
             <button
               className="button"
               disabled={locked}
@@ -573,6 +603,11 @@ export function ContentStage({
           <p className="notice">
             共 {outline.length} 页。只有点击“替换内页”才会覆盖当前内页；请特别修改版权声明。
           </p>
+          {outline.length % 2 === 1 && (
+            <p className="inline-warning">
+              草稿为奇数页；替换后请补一页留白，否则正式导出会被阻止。
+            </p>
+          )}
           <div className="outline-list">
             {outline.map((item, position) => (
               <article key={item.id}>

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const printConfigSchema = z
   .object({
-    trim: z.enum(["8.5x8.5", "8x10", "8.5x11"]),
+    trim: z.enum(["8.25x8.25", "8.5x8.5", "8x10", "8.5x11"]),
     ink: z.enum(["black", "premium", "standard"]),
     bleed: z.boolean(),
     paper: z.enum(["white", "cream"]),
@@ -112,6 +112,16 @@ export type ExportResult = {
   issues: Issue[];
   createdAt: string;
 };
+
+export const defaultColorStyle =
+  "温暖简洁的水彩插画，柔和自然的颜色，清晰的主体，统一的画风；图片内不绘制文字。";
+export const defaultBlackWhiteStyle =
+  "温暖简洁的黑白插画，清晰的轮廓与丰富的灰度层次，无彩色，主体突出，统一的画风；图片内不绘制文字。";
+export function styleAfterInkChange(ink: PrintConfig["ink"], style: string) {
+  if (ink === "black" && style === defaultColorStyle) return defaultBlackWhiteStyle;
+  if (ink !== "black" && style === defaultBlackWhiteStyle) return defaultColorStyle;
+  return style;
+}
 
 export function newPage(id = crypto.randomUUID()): BookPage {
   return {
