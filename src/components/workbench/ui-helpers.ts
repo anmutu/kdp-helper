@@ -1,4 +1,4 @@
-import type { Book, BookPage, Issue, Job } from "@/domain/book";
+import { newPage, type Book, type BookPage, type Issue, type Job } from "@/domain/book";
 import { reconcileBook } from "@/domain/print-spec";
 
 export type BookEdit = (draft: Book) => void;
@@ -71,6 +71,18 @@ export function movePage(pages: BookPage[], id: string, direction: -1 | 1): Book
   const result = [...pages];
   [result[index], result[destination]] = [result[destination], result[index]];
   return result;
+}
+
+export function duplicatePage(page: BookPage): BookPage {
+  return {
+    ...newPage(),
+    kind: page.kind,
+    title: page.title,
+    text: page.text,
+    prompt: page.prompt,
+    layout: page.layout,
+    fontSize: page.fontSize,
+  };
 }
 
 export function generationTargets(book: Book, mode: "all" | "missing"): string[] {

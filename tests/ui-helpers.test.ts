@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { newPage, type Issue, type Job } from "../src/domain/book";
 import { createBook } from "../src/domain/print-spec";
 import {
+  duplicatePage,
   editBook,
   mergeSavedBook,
   movePage,
@@ -192,5 +193,31 @@ describe("export scope", () => {
       "human-review",
     ]);
     expect(issues).toHaveLength(5);
+  });
+});
+
+describe("duplicate page", () => {
+  it("copies content and layout but never the selection or its confirmation", () => {
+    const page = newPage();
+    page.kind = "illustration";
+    page.title = "B — Bear";
+    page.text = "一只熊。";
+    page.prompt = "a friendly bear";
+    page.layout = "full";
+    page.fontSize = 28;
+    page.candidates = [{ ...newPage(), id: page.id } as never];
+    page.selectedAssetId = page.id;
+    page.imageConfirmed = true;
+    const copy = duplicatePage(page);
+    expect(copy.id).not.toBe(page.id);
+    expect(copy.kind).toBe("illustration");
+    expect(copy.title).toBe("B — Bear");
+    expect(copy.text).toBe("一只熊。");
+    expect(copy.prompt).toBe("a friendly bear");
+    expect(copy.layout).toBe("full");
+    expect(copy.fontSize).toBe(28);
+    expect(copy.candidates).toEqual([]);
+    expect(copy.selectedAssetId).toBeNull();
+    expect(copy.imageConfirmed).toBe(false);
   });
 });

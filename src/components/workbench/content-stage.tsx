@@ -5,6 +5,7 @@ import {
   ArrowUp,
   ArrowUpRight,
   BookOpen,
+  Copy,
   Plus,
   Trash2,
   WandSparkles,
@@ -31,7 +32,7 @@ import {
 } from "@/domain/print-spec";
 import { Field, Modal, UploadButton } from "./controls";
 import { PagePreview } from "./book-preview";
-import { movePage, type BookEdit } from "./ui-helpers";
+import { duplicatePage, movePage, type BookEdit } from "./ui-helpers";
 import type { Workbench } from "./use-workbench";
 
 export function TrimPresets({
@@ -539,6 +540,20 @@ export function ContentStage({
                   }
                 >
                   <ArrowDown size={17} />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label="复制此页"
+                  disabled={locked || book.pages.length >= 828}
+                  onClick={() => {
+                    const copy = duplicatePage(page);
+                    edit((draft) => {
+                      draft.pages.splice(index + 1, 0, copy);
+                    });
+                    select(copy.id);
+                  }}
+                >
+                  <Copy size={17} />
                 </button>
                 <button
                   className="icon-button danger"
