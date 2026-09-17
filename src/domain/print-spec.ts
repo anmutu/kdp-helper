@@ -176,6 +176,17 @@ export function sizeLabel(widthInches: number, heightInches: number) {
 export function aspectRatioLabel(rect: Rect) {
   return `≈ ${(rect.width / rect.height).toFixed(2)} : 1（宽 : 高）`;
 }
+// 正文文字颜色预设（需求 F08「预设范围内调整字号与颜色」）。
+// 只提供深色调印刷安全色；键与 book.ts pageSchema 的 textColor 枚举必须一致
+//（由 print-spec 测试断言）。hex 仅用于屏幕预览与 CMYK 换算。
+export const TEXT_COLORS = {
+  ink: { label: "墨黑", hex: "#111111" },
+  sepia: { label: "深棕", hex: "#5b4636" },
+  navy: { label: "藏蓝", hex: "#2c3e50" },
+  slate: { label: "青灰", hex: "#4a5560" },
+  warmgray: { label: "暖灰", hex: "#5f5a52" },
+} as const;
+export type TextColorKey = keyof typeof TEXT_COLORS;
 // 美区（amazon.com）大尺寸平装单册印刷成本，公式：固定成本 + 页数 × 每页成本。
 // 来源：RULES.printCostUrl，核对日期见 printCostCheckedAt。本工具四种开本
 // 宽度均大于 6.12 英寸，全部落在官方 Large trim 档位；页数边界按官方表

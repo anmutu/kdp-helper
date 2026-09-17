@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { type Book, type Issue, type Rect, type ExportResult, type Asset } from "@/domain/book";
 import {
   RULES,
+  TEXT_COLORS,
   inkLabel,
   paperLabel,
   pageGeometry,
@@ -85,6 +86,7 @@ function textBlock(
   size: number,
   issues: Issue[],
   pageId?: string,
+  color: ReturnType<typeof cmyk> = ink,
 ) {
   const characters = new Set(font.getCharacterSet());
   const text = (title + body).replace(/[\n\r\t]/g, "");
@@ -116,7 +118,7 @@ function textBlock(
         y: page.getHeight() - top - fontSize,
         font,
         size: fontSize,
-        color: ink,
+        color,
       });
       top += fontSize * 1.5;
     }
@@ -263,6 +265,7 @@ export async function renderBook(
         content.fontSize,
         issues,
         content.id,
+        colorFromHex(TEXT_COLORS[content.textColor].hex),
       );
     }
     stamp(page, font);

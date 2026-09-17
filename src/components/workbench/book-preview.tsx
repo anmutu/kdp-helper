@@ -2,7 +2,7 @@ import Image from "next/image";
 import { ImagePlus } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { Book, BookPage, Rect } from "@/domain/book";
-import { coverGeometry, pageGeometry, selectedAsset } from "@/domain/print-spec";
+import { TEXT_COLORS, coverGeometry, pageGeometry, selectedAsset } from "@/domain/print-spec";
 import { cropStyle } from "./ui-helpers";
 
 function rectangleStyle(rect: Rect, width: number, height: number): CSSProperties {
@@ -21,6 +21,7 @@ function PreviewText({
   width,
   height,
   fontSize,
+  color,
 }: {
   title: string;
   body: string;
@@ -28,11 +29,16 @@ function PreviewText({
   width: number;
   height: number;
   fontSize: number;
+  color?: string;
 }) {
   return (
     <div
       className="preview-copy"
-      style={{ ...rectangleStyle(rect, width, height), fontSize: `${(fontSize / width) * 100}cqw` }}
+      style={{
+        ...rectangleStyle(rect, width, height),
+        fontSize: `${(fontSize / width) * 100}cqw`,
+        ...(color ? { color } : {}),
+      }}
     >
       {title && <strong>{title}</strong>}
       {body && <p>{body}</p>}
@@ -106,6 +112,7 @@ export function PagePreview({
           width={geometry.width}
           height={geometry.height}
           fontSize={page.fontSize}
+          color={TEXT_COLORS[page.textColor].hex}
         />
       )}
       {guides && (

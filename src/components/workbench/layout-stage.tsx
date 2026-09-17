@@ -1,6 +1,12 @@
 import { useState } from "react";
 import type { Book, BookPage } from "@/domain/book";
-import { coverGeometry, effectiveDpi, selectedAsset, sizeLabel } from "@/domain/print-spec";
+import {
+  TEXT_COLORS,
+  coverGeometry,
+  effectiveDpi,
+  selectedAsset,
+  sizeLabel,
+} from "@/domain/print-spec";
 import { Field } from "./controls";
 import { CoverPreview, PagePreview } from "./book-preview";
 import { PageList, PageMetrics } from "./content-stage";
@@ -91,6 +97,22 @@ export function LayoutStage({
                               patchPage({ fontSize: Number(event.target.value) })
                             }
                           />
+                        </Field>
+                        <Field label="文字颜色" hint="印刷安全深色系；最终效果以草稿 PDF 为准。">
+                          <select
+                            value={page.textColor}
+                            onChange={(event) =>
+                              patchPage({
+                                textColor: event.target.value as BookPage["textColor"],
+                              })
+                            }
+                          >
+                            {Object.entries(TEXT_COLORS).map(([key, preset]) => (
+                              <option key={key} value={key}>
+                                {preset.label}
+                              </option>
+                            ))}
+                          </select>
                         </Field>
                         {page.kind === "illustration" && (
                           <>

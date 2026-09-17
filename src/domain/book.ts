@@ -36,6 +36,7 @@ export const pageSchema = z.object({
   zoom: z.number().min(1).max(3),
   offsetX: z.number().min(0).max(1),
   offsetY: z.number().min(0).max(1),
+  textColor: z.enum(["ink", "sepia", "navy", "slate", "warmgray"]).default("ink"),
 });
 export type BookPage = z.infer<typeof pageSchema>;
 export const coverSchema = z.object({
@@ -138,5 +139,6 @@ export function newPage(id = crypto.randomUUID()): BookPage {
     zoom: 1,
     offsetX: 0.5,
     offsetY: 0.5,
+    textColor: "ink",
   };
 }

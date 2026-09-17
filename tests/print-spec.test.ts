@@ -3,6 +3,7 @@ import {
   defaultBlackWhiteStyle,
   defaultColorStyle,
   newPage,
+  pageSchema,
   printConfigSchema,
   styleAfterInkChange,
   type Book,
@@ -10,6 +11,7 @@ import {
 } from "../src/domain/book";
 import {
   RULES,
+  TEXT_COLORS,
   aspectRatioLabel,
   coverGeometry,
   generationAdequacy,
@@ -186,4 +188,9 @@ describe("KDP official print constraints", () => {
     edited.pages[0].prompt = "new animal";
     expect(reconcileBook(original, edited).pages[0].imageConfirmed).toBe(false);
   });
+});
+it("keeps text color presets aligned with the page schema default", () => {
+  const stripped = JSON.parse(JSON.stringify({ ...newPage(), textColor: undefined }));
+  expect(pageSchema.parse(stripped).textColor).toBe("ink");
+  expect(Object.keys(TEXT_COLORS)).toEqual(["ink", "sepia", "navy", "slate", "warmgray"]);
 });
