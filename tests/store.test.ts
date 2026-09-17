@@ -113,3 +113,26 @@ describe("local persistence and request boundary", () => {
     ).not.toThrow();
   });
 });
+
+describe("reuse existing illustration on cover", () => {
+  it("attaches an in-project asset, selects it, and refuses foreign assets", async () => {
+    const store = await setup();
+    const book = await store.create("复用测试");
+    const bytes = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: "#dddddd" },
+    })
+      .png()
+      .toBuffer();
+    const asset = await store.addAsset(book.id, bytes, "generated");
+    const updated = await store.attachExisting(book.id, "cover", asset.id, true);
+    expect(updated.cover.candidates.map((item) => item.id)).toEqual([asset.id]);
+    expect(updated.cover.selectedAssetId).toBe(asset.id);
+    expect(updated.cover.imageConfirmed).toBe(true);
+    const again = await store.attachExisting(book.id, "cover", asset.id, true);
+    expect(again.cover.candidates).toHaveLength(1);
+    const foreign = await store.addAsset((await store.create("另一本")).id, bytes, "import");
+    await expect(store.attachExisting(book.id, "cover", foreign.id, true)).rejects.toThrow(
+      "不属于此项目",
+    );
+  });
+});

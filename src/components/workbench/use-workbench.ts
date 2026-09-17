@@ -323,6 +323,16 @@ export function useWorkbench() {
       install(result.book);
     });
 
+  const reuseAsset = (targetId: string, assetId: string) =>
+    run("正在复用插画…", async (saved) => {
+      if (!saved) return;
+      const result = await request<{ book: Book }>("/api/assets", {
+        method: "POST",
+        body: JSON.stringify({ projectId: saved.id, targetId, assetId }),
+      });
+      install(result.book);
+    });
+
   const generate = (targetIds: string[], count: number, sample: boolean) =>
     run("正在提交生图任务…", async (saved) => {
       if (!saved?.specConfirmed) throw new Error("请先保存并重新确认出版规格。");
@@ -422,6 +432,7 @@ export function useWorkbench() {
     upload,
     remove,
     removeCandidate,
+    reuseAsset,
     generate,
     pause,
     outline,

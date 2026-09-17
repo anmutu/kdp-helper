@@ -1,10 +1,22 @@
 import { z } from "zod";
-import { endpoint } from "@/server/http";
+import { endpoint, readJson } from "@/server/http";
 import { store } from "@/server/store";
 import { AppError } from "@/server/errors";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   return endpoint(request, async () => {
+    if ((request.headers.get("content-type") || "").includes("application/json")) {
+      const { projectId, targetId, assetId } = z
+        .object({
+          projectId: z.string().uuid(),
+          targetId: z.string().min(1).max(80),
+          assetId: z.string().uuid(),
+        })
+        .parse(await readJson(request));
+      return Response.json({
+        book: await store.attachExisting(projectId, targetId, assetId, true),
+      });
+    }
     if (Number(request.headers.get("content-length")) > 34 * 1024 * 1024)
       throw new AppError("图片上传超过大小限制。", 413);
     const form = await request.formData();

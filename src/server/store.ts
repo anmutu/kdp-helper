@@ -241,6 +241,22 @@ export class Store {
       target.candidates.push(asset);
     });
   }
+  async attachExisting(projectId: string, targetId: string, assetId: string, select = false) {
+    identifier.parse(assetId);
+    const stored = await this.asset(assetId);
+    if (stored.projectId !== projectId) throw new AppError("素材不属于此项目。");
+    return this.mutate(projectId, (draft) => {
+      const target =
+        targetId === "cover" ? draft.cover : draft.pages.find((page) => page.id === targetId);
+      if (!target) throw new AppError("找不到对应页面。");
+      if (!target.candidates.some((asset) => asset.id === assetId))
+        target.candidates.push(stored.asset);
+      if (select) {
+        target.selectedAssetId = assetId;
+        target.imageConfirmed = true;
+      }
+    });
+  }
   async removeCandidate(projectId: string, targetId: string, assetId: string) {
     identifier.parse(assetId);
     const book = await this.mutate(projectId, (draft) => {

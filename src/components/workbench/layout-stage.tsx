@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Image from "next/image";
 import type { Book, BookPage } from "@/domain/book";
 import {
   TEXT_COLORS,
@@ -334,6 +335,39 @@ export function LayoutStage({
           <section className="panel">
             <h2>为封面选一幅画</h2>
             <GenerateControls store={store} targetIds={["cover"]} label="封面" />
+            <div className="reuse-row">
+              <span className="field-hint">复用内页已选插画（会加入封面候选并直接选用）：</span>
+              {(() => {
+                const reusable = book.pages.filter(
+                  (item) => item.kind === "illustration" && item.selectedAssetId,
+                );
+                if (!reusable.length)
+                  return <span className="field-hint">内页还没有已选插画。</span>;
+                return reusable.map((item) => {
+                  const pageNumber = book.pages.findIndex((entry) => entry.id === item.id) + 1;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="reuse-thumb"
+                      disabled={store.locked}
+                      title={`第 ${pageNumber} 页插画，点选用作封面`}
+                      aria-label={`复用第 ${pageNumber} 页插画作为封面`}
+                      onClick={() => void store.reuseAsset("cover", item.selectedAssetId!)}
+                    >
+                      <Image
+                        unoptimized
+                        src={`/api/assets/${item.selectedAssetId}`}
+                        alt={`第 ${pageNumber} 页插画缩略图`}
+                        width={52}
+                        height={52}
+                      />
+                      <small>第 {pageNumber} 页</small>
+                    </button>
+                  );
+                });
+              })()}
+            </div>
             <CoverCandidates store={store} />
           </section>
           <JobPanel store={store} />
