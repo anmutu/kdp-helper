@@ -23,6 +23,7 @@ export function LayoutStage({
   select: (id: string) => void;
 }) {
   const [tab, setTab] = useState<"pages" | "cover">("pages");
+  const [spread, setSpread] = useState(false);
   const book = store.book as Book;
   const index = book.pages.findIndex((page) => page.id === selectedId);
   const page = book.pages[index];
@@ -30,6 +31,16 @@ export function LayoutStage({
     store.edit((draft) => {
       Object.assign(draft.pages[index], patch);
     });
+  const spreadSlots: ({ page: BookPage; index: number } | null)[] =
+    index % 2 === 1
+      ? [
+          { page, index },
+          book.pages[index + 1] ? { page: book.pages[index + 1], index: index + 1 } : null,
+        ]
+      : [
+          book.pages[index - 1] ? { page: book.pages[index - 1], index: index - 1 } : null,
+          { page, index },
+        ];
   const cover = coverGeometry(book.config, book.pages.length);
   const coverAsset = selectedAsset(book.cover);
   return (
@@ -64,8 +75,48 @@ export function LayoutStage({
                 </div>
                 <div className="layout-editor">
                   <div className="preview-desk">
-                    <PagePreview book={book} page={page} index={index} />
+                    {spread ? (
+                      <div className="spread-view" aria-label="左右跨页近似预览">
+                        {spreadSlots.map((slot, position) => (
+                          <div
+                            className="spread-half"
+                            key={slot ? slot.page.id : `empty-${position}`}
+                          >
+                            {slot ? (
+                              <PagePreview
+                                book={book}
+                                page={slot.page}
+                                index={slot.index}
+                                guides={false}
+                              />
+                            ) : (
+                              <div className="spread-empty">
+                                {position === 0
+                                  ? "第一页是右页；左侧属于封面内侧。"
+                                  : "当前是全书最后一页，右侧暂无下一页。"}
+                              </div>
+                            )}
+                            <span className="preview-caption">
+                              {slot
+                                ? `第 ${slot.index + 1} 页 · ${slot.index % 2 ? "左页" : "右页"}`
+                                : "空"}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="spread-spine" aria-hidden="true" />
+                      </div>
+                    ) : (
+                      <PagePreview book={book} page={page} index={index} />
+                    )}
                     <p className="preview-caption">虚线不进入 PDF · 预览仅近似，实际 PDF 为准</p>
+                    <label className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={spread}
+                        onChange={(event) => setSpread(event.target.checked)}
+                      />
+                      <span>左右跨页预览（模拟翻开效果）</span>
+                    </label>
                     <PageMetrics book={book} page={page} index={index} />
                   </div>
                   <fieldset disabled={store.locked} className="form-stack layout-controls">

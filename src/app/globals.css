@@ -1889,3 +1889,38 @@ summary {
   border-color: var(--color-error);
   color: var(--color-error);
 }
+/* 左右跨页预览（GLM-5.3-Flash） */
+.spread-view {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  align-items: start;
+}
+.spread-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: var(--color-line);
+}
+.spread-half {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 4px;
+}
+.spread-empty {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  padding: 12px;
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 11px;
+  text-align: center;
+}
