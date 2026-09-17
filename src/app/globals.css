@@ -1832,3 +1832,53 @@ summary {
     scroll-behavior: auto !important;
   }
 }
+
+/* 候选卡片：外框容器 + 选用按钮 + 悬浮工具按钮（GLM-5.3-Flash） */
+.candidate {
+  position: relative;
+}
+.candidate-choose {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: var(--color-panel);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.candidate-zoom {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.candidate-zoom:hover {
+  border-color: var(--color-accent);
+}
+.lightbox {
+  min-width: min(680px, 80vw);
+}
+.lightbox-image {
+  display: block;
+  max-width: 100%;
+  max-height: 62vh;
+  margin: 0 auto 12px;
+}
+.lightbox .page-metrics {
+  justify-content: center;
+}
+.lightbox-prompt {
+  margin: 10px 0 0;
+  max-height: 96px;
+  overflow: auto;
+}

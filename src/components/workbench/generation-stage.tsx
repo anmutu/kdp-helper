@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Image from "next/image";
-import { Check, CircleCheck, ImagePlus, Pause, Sparkles } from "lucide-react";
-import type { Book, BookPage, Cover, Job, Rect } from "@/domain/book";
+import { Check, CircleCheck, ImagePlus, Pause, Sparkles, ZoomIn } from "lucide-react";
+import type { Asset, Book, BookPage, Cover, Job, Rect } from "@/domain/book";
 import {
   coverGeometry,
   effectiveDpi,
@@ -9,10 +9,72 @@ import {
   pixelRequirements,
   selectedAsset,
 } from "@/domain/print-spec";
-import { Field, UploadButton } from "./controls";
+import { Field, Modal, UploadButton } from "./controls";
 import { PageList, PageMetrics } from "./content-stage";
 import { generationTargets, jobIsInFlight } from "./ui-helpers";
 import type { Workbench } from "./use-workbench";
+
+function CandidateLightbox({
+  asset,
+  index,
+  rect,
+  zoom,
+  disabled,
+  choose,
+  close,
+}: {
+  asset: Asset;
+  index: number;
+  rect: Rect;
+  zoom: number;
+  disabled: boolean;
+  choose: (id: string) => void;
+  close: () => void;
+}) {
+  const dpi = Math.floor(effectiveDpi(asset, rect, zoom));
+  return (
+    <Modal title={`候选 ${String(index + 1).padStart(2, "0")} · 大图查看`} close={close}>
+      <div className="lightbox">
+        <Image
+          unoptimized
+          src={`/api/assets/${asset.id}`}
+          alt={`候选插画 ${index + 1} 大图`}
+          width={asset.width}
+          height={asset.height}
+          className="lightbox-image"
+        />
+        <div className="page-metrics">
+          <span>
+            实际 {asset.width} × {asset.height} px
+          </span>
+          <span className={dpi < 300 ? "warning-text" : "success"}>当前版式有效 DPI：{dpi}</span>
+          <span>
+            {asset.source === "import"
+              ? "手工导入"
+              : `模型生成${asset.model ? ` · ${asset.model}` : ""}`}
+          </span>
+          <span>时间 {new Date(asset.createdAt).toLocaleString()}</span>
+        </div>
+        {asset.prompt && <p className="field-hint lightbox-prompt">提示词：{asset.prompt}</p>}
+        <div className="modal-actions">
+          <button
+            className="button primary"
+            disabled={disabled}
+            onClick={() => {
+              choose(asset.id);
+              close();
+            }}
+          >
+            选用这张
+          </button>
+          <button className="button" onClick={close}>
+            关闭
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 export function CandidatePicker({
   target,
@@ -33,6 +95,7 @@ export function CandidatePicker({
 }) {
   const chosen = selectedAsset(target);
   const pixels = pixelRequirements(rect);
+  const [preview, setPreview] = useState<{ asset: Asset; index: number } | null>(null);
   return (
     <section className="candidate-section">
       <div className="section-heading">
@@ -53,41 +116,50 @@ export function CandidatePicker({
             const dpi = Math.floor(effectiveDpi(asset, rect, zoom));
             const selected = target.selectedAssetId === asset.id;
             return (
-              <button
-                type="button"
-                className={`candidate ${selected ? "selected" : ""}`}
-                key={asset.id}
-                disabled={disabled}
-                aria-pressed={selected}
-                aria-label={`选用候选 ${index + 1}，${asset.width} 乘 ${asset.height} 像素，${dpi} DPI`}
-                onClick={() => choose(asset.id)}
-              >
-                <div className="candidate-image">
-                  <Image
-                    unoptimized
-                    src={`/api/assets/${asset.id}`}
-                    alt={`候选插画 ${index + 1}`}
-                    width={asset.width}
-                    height={asset.height}
-                  />
-                  {selected && (
-                    <span className="selection-mark">
-                      <Check size={16} />
-                      已选用
+              <div className={`candidate ${selected ? "selected" : ""}`} key={asset.id}>
+                <button
+                  type="button"
+                  className="candidate-choose"
+                  disabled={disabled}
+                  aria-pressed={selected}
+                  aria-label={`选用候选 ${index + 1}，${asset.width} 乘 ${asset.height} 像素，${dpi} DPI`}
+                  onClick={() => choose(asset.id)}
+                >
+                  <div className="candidate-image">
+                    <Image
+                      unoptimized
+                      src={`/api/assets/${asset.id}`}
+                      alt={`候选插画 ${index + 1}`}
+                      width={asset.width}
+                      height={asset.height}
+                    />
+                    {selected && (
+                      <span className="selection-mark">
+                        <Check size={16} />
+                        已选用
+                      </span>
+                    )}
+                  </div>
+                  <div className="candidate-caption">
+                    <strong>方案 {String(index + 1).padStart(2, "0")}</strong>
+                    <span className={dpi < 300 ? "warning-text" : "success"}>
+                      {dpi} DPI{dpi < 300 ? " · 仅草稿" : ""}
                     </span>
-                  )}
-                </div>
-                <div className="candidate-caption">
-                  <strong>方案 {String(index + 1).padStart(2, "0")}</strong>
-                  <span className={dpi < 300 ? "warning-text" : "success"}>
-                    {dpi} DPI{dpi < 300 ? " · 仅草稿" : ""}
-                  </span>
-                  <small>
-                    {asset.width} × {asset.height} px ·{" "}
-                    {asset.source === "import" ? "手工导入" : "模型生成"}
-                  </small>
-                </div>
-              </button>
+                    <small>
+                      {asset.width} × {asset.height} px ·{" "}
+                      {asset.source === "import" ? "手工导入" : "模型生成"}
+                    </small>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="candidate-zoom"
+                  aria-label={`放大查看候选 ${index + 1}`}
+                  onClick={() => setPreview({ asset, index })}
+                >
+                  <ZoomIn size={16} />
+                </button>
+              </div>
             );
           })}
         </div>
@@ -112,6 +184,17 @@ export function CandidatePicker({
             </button>
           )}
         </div>
+      )}
+      {preview && (
+        <CandidateLightbox
+          asset={preview.asset}
+          index={preview.index}
+          rect={rect}
+          zoom={zoom}
+          disabled={disabled}
+          choose={choose}
+          close={() => setPreview(null)}
+        />
       )}
     </section>
   );
