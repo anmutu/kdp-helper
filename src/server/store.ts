@@ -241,6 +241,30 @@ export class Store {
       target.candidates.push(asset);
     });
   }
+  async removeCandidate(projectId: string, targetId: string, assetId: string) {
+    identifier.parse(assetId);
+    const book = await this.mutate(projectId, (draft) => {
+      const target =
+        targetId === "cover" ? draft.cover : draft.pages.find((page) => page.id === targetId);
+      if (!target) throw new AppError("找不到对应页面。");
+      if (!target.candidates.some((asset) => asset.id === assetId))
+        throw new AppError("该候选不在此目标的候选列表中。");
+      target.candidates = target.candidates.filter((asset) => asset.id !== assetId);
+      if (target.selectedAssetId === assetId) target.selectedAssetId = null;
+    });
+    const referenced =
+      book.referenceAssetId === assetId ||
+      book.cover.candidates.some((asset) => asset.id === assetId) ||
+      book.pages.some(
+        (page) =>
+          page.selectedAssetId === assetId || page.candidates.some((asset) => asset.id === assetId),
+      );
+    if (!referenced) {
+      await rm(path.join(this.root, "assets", `${assetId}.png`), { force: true });
+      await rm(path.join(this.root, "assets", `${assetId}.json`), { force: true });
+    }
+    return book;
+  }
   async jobs(): Promise<Job[]> {
     try {
       return await this.json<Job[]>("jobs.json");

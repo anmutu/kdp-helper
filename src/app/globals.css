@@ -1882,3 +1882,10 @@ summary {
   max-height: 96px;
   overflow: auto;
 }
+.candidate-delete {
+  right: 46px;
+}
+.candidate-delete:hover {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Image from "next/image";
-import { Check, CircleCheck, ImagePlus, Pause, Sparkles, ZoomIn } from "lucide-react";
+import { Check, CircleCheck, ImagePlus, Pause, Sparkles, Trash2, ZoomIn } from "lucide-react";
 import type { Asset, Book, BookPage, Cover, Job, Rect } from "@/domain/book";
 import {
   coverGeometry,
@@ -84,6 +84,7 @@ export function CandidatePicker({
   choose,
   confirm,
   upload,
+  remove,
 }: {
   target: BookPage | Cover;
   rect: Rect;
@@ -92,6 +93,7 @@ export function CandidatePicker({
   choose: (id: string) => void;
   confirm: () => void;
   upload: (file: File) => void;
+  remove: (assetId: string) => void;
 }) {
   const chosen = selectedAsset(target);
   const pixels = pixelRequirements(rect);
@@ -158,6 +160,28 @@ export function CandidatePicker({
                   onClick={() => setPreview({ asset, index })}
                 >
                   <ZoomIn size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="candidate-zoom candidate-delete"
+                  aria-label={`删除候选 ${index + 1}`}
+                  disabled={disabled}
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        `删除候选 ${index + 1}？${
+                          selected
+                            ? "它当前已被选用，删除后此页需要重新选图。"
+                            : "将同时删除本机图片文件，不可恢复。"
+                        }`,
+                      )
+                    )
+                      return;
+                    setPreview((current) => (current?.asset.id === asset.id ? null : current));
+                    remove(asset.id);
+                  }}
+                >
+                  <Trash2 size={15} />
                 </button>
               </div>
             );
@@ -437,6 +461,7 @@ export function GenerationStage({
                 zoom={page.zoom}
                 disabled={store.locked}
                 upload={(file) => void store.upload(file, page.id)}
+                remove={(assetId) => void store.removeCandidate(page.id, assetId)}
                 choose={(id) =>
                   store.edit((draft) => {
                     draft.pages[index].selectedAssetId = id;
@@ -472,6 +497,7 @@ export function CoverCandidates({ store }: { store: Workbench }) {
       rect={coverGeometry(book.config, book.pages.length).image}
       disabled={store.locked}
       upload={(file) => void store.upload(file, "cover")}
+      remove={(assetId) => void store.removeCandidate("cover", assetId)}
       choose={(id) =>
         store.edit((draft) => {
           draft.cover.selectedAssetId = id;

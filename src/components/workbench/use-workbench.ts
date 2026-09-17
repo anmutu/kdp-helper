@@ -313,6 +313,16 @@ export function useWorkbench() {
       }
     });
 
+  const removeCandidate = (targetId: string, assetId: string) =>
+    run("正在删除候选…", async (saved) => {
+      if (!saved) return;
+      const result = await request<{ book: Book }>(`/api/assets/${assetId}`, {
+        method: "DELETE",
+        body: JSON.stringify({ projectId: saved.id, targetId }),
+      });
+      install(result.book);
+    });
+
   const generate = (targetIds: string[], count: number, sample: boolean) =>
     run("正在提交生图任务…", async (saved) => {
       if (!saved?.specConfirmed) throw new Error("请先保存并重新确认出版规格。");
@@ -411,6 +421,7 @@ export function useWorkbench() {
     reload,
     upload,
     remove,
+    removeCandidate,
     generate,
     pause,
     outline,

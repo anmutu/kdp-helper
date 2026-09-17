@@ -5,6 +5,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { Store } from "../src/server/store";
 import { checkLocalRequest } from "../src/server/security";
+import { newPage } from "../src/domain/book";
 
 const roots: string[] = [];
 async function setup() {
@@ -57,6 +58,36 @@ describe("local persistence and request boundary", () => {
     await expect(store.asset(asset.id)).rejects.toThrow("不存在");
     expect((await store.asset(otherAsset.id)).projectId).toBe(keeper.id);
     await expect(store.delete(book.id)).rejects.toThrow("不存在");
+  });
+  it("removes a candidate with its files, but keeps files still referenced elsewhere", async () => {
+    const store = await setup();
+    const book = await store.create("候选删除");
+    const bytes = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: "#ffffff" },
+    })
+      .png()
+      .toBuffer();
+    const asset = await store.addAsset(book.id, bytes, "import");
+    await store.attach(book.id, "cover", asset);
+    const page = { ...newPage(), kind: "illustration" as const };
+    await store.mutate(book.id, (draft) => {
+      draft.pages.push(page);
+    });
+    await store.attach(book.id, page.id, asset);
+    await store.mutate(book.id, (draft) => {
+      draft.cover.selectedAssetId = asset.id;
+    });
+    const updated = await store.removeCandidate(book.id, "cover", asset.id);
+    expect(updated.cover.candidates).toEqual([]);
+    expect(updated.cover.selectedAssetId).toBeNull();
+    expect((await store.read(book.id)).pages[0].candidates.map((item) => item.id)).toEqual([
+      asset.id,
+    ]);
+    await store.asset(asset.id);
+    const orphaned = await store.addAsset(book.id, bytes, "generated");
+    await store.attach(book.id, page.id, orphaned);
+    await store.removeCandidate(book.id, page.id, orphaned.id);
+    await expect(store.asset(orphaned.id)).rejects.toThrow("不存在");
   });
   it("rejects remote hosts and cross-site writes", () => {
     expect(() =>
