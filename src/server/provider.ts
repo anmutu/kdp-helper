@@ -223,8 +223,13 @@ export async function generateOutline(
           .max(60),
       })
       .parse(JSON.parse(content));
+    if (outline.pages.length !== targetPages)
+      throw new ProviderError(
+        `文字模型返回的页数为 ${outline.pages.length} 页，与要求的 ${targetPages} 页不一致。原书未被修改，未自动重试；请先检查服务记录，也可以手动填写页面。`,
+      );
     return outline.pages.map((page) => ({ ...newPage(), ...page }));
-  } catch {
+  } catch (error) {
+    if (error instanceof ProviderError) throw error;
     throw new ProviderError("文字模型未遵循页面 JSON 格式，原书未被修改；可以手动填写或调整模型。");
   }
 }

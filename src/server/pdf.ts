@@ -15,7 +15,7 @@ import {
   validateBook,
 } from "@/domain/print-spec";
 import { store } from "./store";
-import { AppError } from "./errors";
+import { AppError, ExportValidationError } from "./errors";
 import { embedCffFontProgram } from "./pdf-font";
 
 let fontBytes: Promise<Buffer> | undefined;
@@ -85,9 +85,10 @@ function textBlock(
   rect: Rect,
   size: number,
   issues: Issue[],
-  pageId?: string,
+  location?: { id: string; number: number },
   color: ReturnType<typeof cmyk> = ink,
 ) {
+  const label = location ? `第 ${location.number} 页` : "封面";
   const characters = new Set(font.getCharacterSet());
   const text = (title + body).replace(/[\n\r\t]/g, "");
   const missing = [
@@ -95,10 +96,10 @@ function textBlock(
   ];
   if (missing.length)
     issues.push({
-      code: "missing-glyph",
+      code: location ? "missing-glyph" : "cover-missing-glyph",
       severity: "error",
-      message: `字体不支持这些字符：${missing.slice(0, 10).join(" ")}`,
-      pageId,
+      message: `${label}字体不支持这些字符：${missing.slice(0, 10).join(" ")}`,
+      pageId: location?.id,
     });
   let top = rect.y;
   for (const [content, fontSize] of [
@@ -124,12 +125,12 @@ function textBlock(
     }
     if (overflowing) {
       issues.push({
-        code: "text-overflow",
+        code: location ? "text-overflow" : "cover-text-overflow",
         severity: "error",
-        message: pageId
-          ? "页面文字超出安全区，请缩短文字或减小字号。"
+        message: location
+          ? `${label}文字超出安全区，请缩短文字或减小字号。`
           : "封面文字超出安全区，请缩短书名、署名或简介。",
-        pageId,
+        pageId: location?.id,
       });
       break;
     }
@@ -207,7 +208,7 @@ export async function renderBook(
           zoom,
           offsetX,
           offsetY,
-          book.config.ink === "black",
+          document === interior && book.config.ink === "black",
         ),
       );
       cache.set(key, image);
@@ -264,7 +265,7 @@ export async function renderBook(
         content.kind === "text" ? geometry.safe : geometry.text,
         content.fontSize,
         issues,
-        content.id,
+        { id: content.id, number: index + 1 },
         colorFromHex(TEXT_COLORS[content.textColor].hex),
       );
     }
@@ -313,12 +314,7 @@ export async function exportBook(
   const book = await store.read(projectId);
   const result = await renderBook(book, (id) => store.assetBytes(id), draft, target);
   if (!result.interior || (target === "all" && !result.cover)) {
-    const message = result.issues
-      .filter((issue) => issue.severity === "error")
-      .slice(0, 8)
-      .map((issue) => issue.message)
-      .join("\n");
-    throw new AppError(`正式导出被阻止：\n${message}`);
+    throw new ExportValidationError(result.issues);
   }
   const current = await store.read(projectId);
   if (current.version !== book.version)
@@ -333,7 +329,7 @@ export async function exportBook(
     `文件性质：${draft ? "草稿，禁止上传" : "已通过本工具检查，尚未通过 KDP 审核"}`,
     `规格：${book.config.trim} 英寸 / ${inkLabel(book.config.ink)} / ${paperLabel(book.config.paper)} / ${book.config.bleed ? "内页出血" : "内页不出血"}`,
     `内页：${book.pages.length} 页，封面另计`,
-    `图片已扁平化并转换为 CMYK JPEG${book.config.ink === "black" ? "（黑白印刷，已转灰度）" : ""}，字体嵌入。屏幕与印刷仍可能有色差，本工具不宣称 PDF/X 认证。`,
+    `图片已扁平化并转换为 CMYK JPEG${book.config.ink === "black" ? "（仅内页插图转灰度；封面插图不随内页墨水设置转灰度）" : ""}，字体嵌入。屏幕与印刷仍可能有色差，本工具不宣称 PDF/X 认证。`,
     `官方规则版本：${RULES.version}`,
     `官方内页规则：${RULES.manuscriptUrl}`,
     `封面模板核对：${RULES.calculatorUrl}`,

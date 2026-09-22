@@ -18,12 +18,15 @@ export function LayoutStage({
   store,
   selectedId,
   select,
+  tab,
+  setTab,
 }: {
   store: Workbench;
   selectedId: string;
   select: (id: string) => void;
+  tab: "pages" | "cover";
+  setTab: (tab: "pages" | "cover") => void;
 }) {
-  const [tab, setTab] = useState<"pages" | "cover">("pages");
   const [spread, setSpread] = useState(false);
   const book = store.book as Book;
   const index = book.pages.findIndex((page) => page.id === selectedId);

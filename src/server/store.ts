@@ -9,6 +9,8 @@ import {
   type Book,
   type Job,
   type PublicSettings,
+  type ProjectListing,
+  type PrintConfig,
   type Settings,
 } from "@/domain/book";
 import { createBook, reconcileBook } from "@/domain/print-spec";
@@ -67,20 +69,30 @@ export class Store {
     await writeFile(temp, JSON.stringify(value, null, 2), { mode: 0o600 });
     await rename(temp, destination);
   }
-  async list(): Promise<Book[]> {
+  async list(): Promise<ProjectListing> {
     await mkdir(path.join(this.root, "projects"), { recursive: true, mode: 0o700 });
     const files = (await readdir(path.join(this.root, "projects"))).filter((file) =>
       file.endsWith(".json"),
     );
-    const books = await Promise.all(files.map((file) => this.read(file.slice(0, -5))));
-    return books.sort((first, second) => second.updatedAt.localeCompare(first.updatedAt));
+    const results = await Promise.allSettled(files.map((file) => this.read(file.slice(0, -5))));
+    const listing: ProjectListing = { projects: [], problems: [] };
+    for (const [index, result] of results.entries()) {
+      if (result.status === "fulfilled") listing.projects.push(result.value);
+      else
+        listing.problems.push({
+          file: `projects/${files[index]}`,
+          message: "无法读取或校验此项目，原文件已保留。请先备份，再检查文件或从备份恢复。",
+        });
+    }
+    listing.projects.sort((first, second) => second.updatedAt.localeCompare(first.updatedAt));
+    return listing;
   }
   async read(id: string) {
     identifier.parse(id);
     return bookSchema.parse(await this.json(`projects/${id}.json`));
   }
-  async create(name: string) {
-    const book = createBook(z.string().trim().min(1).max(200).parse(name));
+  async create(name: string, config?: PrintConfig) {
+    const book = createBook(z.string().trim().min(1).max(200).parse(name), config);
     await this.atomic(`projects/${book.id}.json`, book);
     return book;
   }
@@ -147,15 +159,16 @@ export class Store {
   }
   async mutate(id: string, operation: (book: Book) => void | Promise<void>) {
     identifier.parse(id);
-    return this.lock(id, async () => {
-      const book = await this.read(id);
-      await operation(book);
-      book.version += 1;
-      book.updatedAt = new Date().toISOString();
-      const result = bookSchema.parse(book);
-      await this.atomic(`projects/${id}.json`, result);
-      return result;
-    });
+    return this.lock(id, () => this.mutateLocked(id, operation));
+  }
+  private async mutateLocked(id: string, operation: (book: Book) => void | Promise<void>) {
+    const book = await this.read(id);
+    await operation(book);
+    book.version += 1;
+    book.updatedAt = new Date().toISOString();
+    const result = bookSchema.parse(book);
+    await this.atomic(`projects/${id}.json`, result);
+    return result;
   }
   async settings(): Promise<Settings> {
     try {
@@ -226,9 +239,12 @@ export class Store {
     return readFile(path.join(this.root, "assets", id + ".png"));
   }
   async attach(projectId: string, targetId: string, asset: Asset) {
-    return this.mutate(projectId, (book) => {
+    return this.mutate(projectId, async (book) => {
+      const stored = await this.asset(asset.id);
+      if (stored.projectId !== projectId) throw new AppError("素材不属于此项目。");
       if (targetId === "reference") {
         book.referenceAssetId = asset.id;
+        book.generationStyleConfirmed = false;
         book.pages.forEach((page) => {
           page.imageConfirmed = false;
         });
@@ -238,14 +254,14 @@ export class Store {
       const target =
         targetId === "cover" ? book.cover : book.pages.find((page) => page.id === targetId);
       if (!target) throw new AppError("找不到对应页面；素材仍保存在本机。");
-      target.candidates.push(asset);
+      target.candidates.push(stored.asset);
     });
   }
   async attachExisting(projectId: string, targetId: string, assetId: string, select = false) {
     identifier.parse(assetId);
-    const stored = await this.asset(assetId);
-    if (stored.projectId !== projectId) throw new AppError("素材不属于此项目。");
-    return this.mutate(projectId, (draft) => {
+    return this.mutate(projectId, async (draft) => {
+      const stored = await this.asset(assetId);
+      if (stored.projectId !== projectId) throw new AppError("素材不属于此项目。");
       const target =
         targetId === "cover" ? draft.cover : draft.pages.find((page) => page.id === targetId);
       if (!target) throw new AppError("找不到对应页面。");
@@ -258,28 +274,35 @@ export class Store {
     });
   }
   async removeCandidate(projectId: string, targetId: string, assetId: string) {
+    identifier.parse(projectId);
     identifier.parse(assetId);
-    const book = await this.mutate(projectId, (draft) => {
-      const target =
-        targetId === "cover" ? draft.cover : draft.pages.find((page) => page.id === targetId);
-      if (!target) throw new AppError("找不到对应页面。");
-      if (!target.candidates.some((asset) => asset.id === assetId))
-        throw new AppError("该候选不在此目标的候选列表中。");
-      target.candidates = target.candidates.filter((asset) => asset.id !== assetId);
-      if (target.selectedAssetId === assetId) target.selectedAssetId = null;
+    return this.lock(projectId, async () => {
+      const book = await this.mutateLocked(projectId, (draft) => {
+        const target =
+          targetId === "cover" ? draft.cover : draft.pages.find((page) => page.id === targetId);
+        if (!target) throw new AppError("找不到对应页面。");
+        if (!target.candidates.some((asset) => asset.id === assetId))
+          throw new AppError("该候选不在此目标的候选列表中。");
+        target.candidates = target.candidates.filter((asset) => asset.id !== assetId);
+        if (target.selectedAssetId === assetId) {
+          target.selectedAssetId = null;
+          target.imageConfirmed = false;
+        }
+      });
+      const referenced =
+        book.referenceAssetId === assetId ||
+        book.cover.candidates.some((asset) => asset.id === assetId) ||
+        book.pages.some(
+          (page) =>
+            page.selectedAssetId === assetId ||
+            page.candidates.some((asset) => asset.id === assetId),
+        );
+      if (!referenced) {
+        await rm(path.join(this.root, "assets", `${assetId}.png`), { force: true });
+        await rm(path.join(this.root, "assets", `${assetId}.json`), { force: true });
+      }
+      return book;
     });
-    const referenced =
-      book.referenceAssetId === assetId ||
-      book.cover.candidates.some((asset) => asset.id === assetId) ||
-      book.pages.some(
-        (page) =>
-          page.selectedAssetId === assetId || page.candidates.some((asset) => asset.id === assetId),
-      );
-    if (!referenced) {
-      await rm(path.join(this.root, "assets", `${assetId}.png`), { force: true });
-      await rm(path.join(this.root, "assets", `${assetId}.json`), { force: true });
-    }
-    return book;
   }
   async jobs(): Promise<Job[]> {
     try {

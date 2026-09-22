@@ -173,11 +173,17 @@ describe("KDP official print constraints", () => {
   it("invalidates spec confirmation and keeps existing candidates when a specification changes", () => {
     const original = createBook("test");
     original.specConfirmed = true;
+    original.generationStyleConfirmed = true;
+    original.pages = [{ ...newPage(), imageConfirmed: true }];
+    original.cover.imageConfirmed = true;
     const edited: Book = structuredClone(original);
     edited.config.bleed = !original.config.bleed;
     edited.specConfirmed = true;
     const reconciled = reconcileBook(original, edited);
     expect(reconciled.specConfirmed).toBe(false);
+    expect(reconciled.generationStyleConfirmed).toBe(false);
+    expect(reconciled.pages[0].imageConfirmed).toBe(false);
+    expect(reconciled.cover.imageConfirmed).toBe(false);
     expect(specKey(original.config)).not.toBe(specKey(reconciled.config));
   });
   it("changing prompts invalidates review without silently changing the selected image", () => {

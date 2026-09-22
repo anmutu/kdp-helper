@@ -1,6 +1,8 @@
 import {
   defaultColorStyle,
+  defaultBlackWhiteStyle,
   newPage,
+  printConfigSchema,
   type Asset,
   type Book,
   type Issue,
@@ -274,20 +276,25 @@ export function validateBook(book: Book): Issue[] {
   return issues;
 }
 
-export function createBook(name: string): Book {
+export function createBook(
+  name: string,
+  config: PrintConfig = { trim: "8.5x8.5", ink: "premium", bleed: false, paper: "white" },
+): Book {
   const now = new Date().toISOString();
+  const parsedConfig = printConfigSchema.parse(config);
   return {
     id: crypto.randomUUID(),
     version: 0,
     name,
     createdAt: now,
     updatedAt: now,
-    config: { trim: "8.5x8.5", ink: "premium", bleed: false, paper: "white" },
+    config: parsedConfig,
     specConfirmed: false,
+    generationStyleConfirmed: false,
     theme: "",
     language: "English",
     audience: "3–6 岁",
-    style: defaultColorStyle,
+    style: parsedConfig.ink === "black" ? defaultBlackWhiteStyle : defaultColorStyle,
     referenceAssetId: null,
     pages: [],
     cover: {
@@ -309,12 +316,14 @@ export function reconcileBook(previous: Book, next: Book): Book {
   const configChanged = specKey(previous.config) !== specKey(next.config);
   const nextBook = structuredClone(next);
   if (configChanged) nextBook.specConfirmed = false;
+  if (configChanged || changedStyle) nextBook.generationStyleConfirmed = false;
   nextBook.pages = nextBook.pages.map((page) => {
     const old = previous.pages.find((item) => item.id === page.id);
-    if (old && (changedStyle || old.prompt !== page.prompt)) page.imageConfirmed = false;
+    if (old && (configChanged || changedStyle || old.prompt !== page.prompt))
+      page.imageConfirmed = false;
     return page;
   });
-  if (changedStyle || previous.cover.prompt !== next.cover.prompt)
+  if (configChanged || changedStyle || previous.cover.prompt !== next.cover.prompt)
     nextBook.cover.imageConfirmed = false;
   nextBook.id = previous.id;
   nextBook.createdAt = previous.createdAt;

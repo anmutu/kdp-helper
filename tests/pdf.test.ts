@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFName, PDFRawStream } from "pdf-lib";
 import sharp from "sharp";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
@@ -10,6 +10,49 @@ import { newPage, type Asset } from "../src/domain/book";
 import { renderBook } from "../src/server/pdf";
 
 describe("actual PDF files", () => {
+  it("keeps the cover in color while converting black-ink interior illustrations to gray", async () => {
+    const book = createBook("黑白内页，彩色封面");
+    book.config.ink = "black";
+    const image = await sharp({
+      create: { width: 64, height: 64, channels: 3, background: "#ff0000" },
+    })
+      .png()
+      .toBuffer();
+    const asset: Asset = {
+      id: crypto.randomUUID(),
+      width: 64,
+      height: 64,
+      mime: "image/png",
+      source: "import",
+      createdAt: new Date().toISOString(),
+      prompt: "",
+      model: "",
+    };
+    book.pages = [{ ...newPage(), candidates: [asset], selectedAssetId: asset.id }];
+    book.cover.candidates = [asset];
+    book.cover.selectedAssetId = asset.id;
+    const result = await renderBook(book, async () => image, true);
+    async function redGreenDifference(bytes: Uint8Array) {
+      const document = await PDFDocument.load(bytes);
+      const embedded = document.context
+        .enumerateIndirectObjects()
+        .map(([, object]) => object)
+        .find(
+          (object): object is PDFRawStream =>
+            object instanceof PDFRawStream &&
+            object.dict.get(PDFName.of("Subtype"))?.toString() === "/Image",
+        );
+      expect(embedded).toBeDefined();
+      const rgb = await sharp(Buffer.from(embedded!.getContents()))
+        .toColourspace("srgb")
+        .png()
+        .toBuffer();
+      const { channels } = await sharp(rgb).stats();
+      return channels[0].mean - channels[1].mean;
+    }
+    expect(Math.abs(await redGreenDifference(result.interior!))).toBeLessThan(5);
+    expect(await redGreenDifference(result.cover!)).toBeGreaterThan(100);
+  }, 30000);
   it("exports a valid interior independently of an unfinished cover", async () => {
     const book = createBook("独立内页");
     book.specConfirmed = true;
@@ -85,11 +128,24 @@ describe("actual PDF files", () => {
   it("refuses production files with text overflow and allows a labeled draft", async () => {
     const book = createBook("overflow");
     book.specConfirmed = true;
-    book.pages = [{ ...newPage(), kind: "text", text: "长文字".repeat(1500) }];
+    book.pages = [{ ...newPage(), kind: "text", text: "长文字".repeat(900) }];
     const final = await renderBook(book, async () => Buffer.alloc(0), false);
     expect(final.interior).toBeUndefined();
     expect(final.issues.some((issue) => issue.code === "text-overflow")).toBe(true);
+    expect(final.issues.find((issue) => issue.code === "text-overflow")).toMatchObject({
+      pageId: book.pages[0].id,
+      message: expect.stringContaining("第 1 页"),
+    });
     const draft = await renderBook(book, async () => Buffer.alloc(0), true);
     expect((await PDFDocument.load(draft.interior!)).getPageCount()).toBe(1);
+  }, 30000);
+  it("identifies cover text overflow separately from interior errors", async () => {
+    const book = createBook("Cover overflow");
+    book.pages = [{ ...newPage(), kind: "text", text: "Hello" }];
+    book.cover.description = "长文字".repeat(400);
+    const result = await renderBook(book, async () => Buffer.alloc(0), true);
+    expect(result.issues.find((issue) => issue.code === "cover-text-overflow")).toMatchObject({
+      message: expect.stringContaining("封面"),
+    });
   }, 30000);
 });

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Book, BookPage, ExportResult, Job } from "@/domain/book";
+import type { Book, BookPage, ExportResult, Job, ProjectListing } from "@/domain/book";
+import { BACKUP_LIMITS } from "@/domain/project-files";
 import {
   editBook,
   jobIsInFlight,
@@ -16,6 +17,7 @@ import { clearGenerationIntent, prepareGenerationIntent } from "./generation-int
 export function useWorkbench() {
   const [book, setBook] = useState<Book | null>(null);
   const [projects, setProjects] = useState<Book[]>([]);
+  const [projectProblems, setProjectProblems] = useState<ProjectListing["problems"]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
@@ -136,9 +138,10 @@ export function useWorkbench() {
     let cancelled = false;
     async function load() {
       try {
-        const result = await request<{ projects: Book[] }>("/api/projects");
+        const result = await request<ProjectListing>("/api/projects");
         if (cancelled) return;
         setProjects(result.projects);
+        setProjectProblems(result.problems);
         if (result.projects[0]) {
           const id = result.projects[0].id;
           const [project, tasks] = await Promise.all([
@@ -238,11 +241,11 @@ export function useWorkbench() {
     [flush, report],
   );
 
-  const create = (name: string) =>
+  const create = (name: string, config?: Book["config"]) =>
     run("正在创建绘本…", async () => {
       const result = await request<{ book: Book }>("/api/projects", {
         method: "POST",
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, config }),
       });
       install(result.book, []);
       return result.book;
@@ -290,8 +293,10 @@ export function useWorkbench() {
   const remove = (id: string) =>
     run("正在删除绘本…", async () => {
       await request<{ deleted: boolean }>(`/api/projects/${id}`, { method: "DELETE" });
-      const remaining = (await request<{ projects: Book[] }>("/api/projects")).projects;
+      const listing = await request<ProjectListing>("/api/projects");
+      const remaining = listing.projects;
       setProjects(remaining);
+      setProjectProblems(listing.problems);
       if (current.current?.id === id) {
         current.current = null;
         revision.current = 0;
@@ -406,18 +411,55 @@ export function useWorkbench() {
   const exportBook = (draft: boolean, reviewed: boolean, target: ExportTarget = "all") =>
     run("正在制作 PDF…", async (saved) => {
       if (!saved) return;
-      return (
-        await request<{ export: ExportResult }>("/api/export", {
+      try {
+        const result = await request<{ export: ExportResult }>("/api/export", {
           method: "POST",
           body: JSON.stringify({ projectId: saved.id, draft, reviewed, target }),
-        })
-      ).export;
+        });
+        return { status: "exported" as const, result: result.export };
+      } catch (cause) {
+        if (cause instanceof RequestError && cause.status === 422 && cause.issues.length) {
+          report(cause);
+          return { status: "blocked" as const, issues: cause.issues };
+        }
+        throw cause;
+      }
     });
 
   const hasActiveJob = jobs.some(jobIsInFlight);
+  const downloadBackup = () =>
+    run("正在制作项目备份…", async (saved) => {
+      if (!saved) return;
+      const response = await fetch(`/api/projects/${saved.id}/backup`, { cache: "no-store" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new RequestError(data?.error || "备份下载失败，请检查本地服务。", response.status);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `book-${saved.id}.kdp.zip`;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      return true;
+    });
+  const restoreBackup = (file: File) =>
+    run("正在验证并恢复备份…", async () => {
+      if (file.size > BACKUP_LIMITS.archiveBytes)
+        throw new Error("备份超过 256 MiB，请手工恢复数据目录。");
+      const result = await request<{ book: Book }>("/api/backups/restore", {
+        method: "POST",
+        body: file,
+        headers: { "Content-Type": "application/zip" },
+      });
+      install(result.book, []);
+      return result.book;
+    });
   return {
     book,
     projects,
+    projectProblems,
     jobs,
     loading,
     busy,
@@ -437,6 +479,8 @@ export function useWorkbench() {
     pause,
     outline,
     exportBook,
+    downloadBackup,
+    restoreBackup,
     retrySave: () => run("正在保存…", async () => undefined),
     dismissError: () => setError(""),
   };

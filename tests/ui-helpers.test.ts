@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { newPage, type Issue, type Job } from "../src/domain/book";
 import { createBook } from "../src/domain/print-spec";
 import {
@@ -10,6 +10,9 @@ import {
   cropStyle,
   jobIsInFlight,
   exportIssues,
+  issueStage,
+  request,
+  RequestError,
 } from "../src/components/workbench/ui-helpers";
 import {
   prepareGenerationIntent,
@@ -193,6 +196,52 @@ describe("export scope", () => {
       "human-review",
     ]);
     expect(issues).toHaveLength(5);
+  });
+  it("merges server checks without duplicate errors and locates layout issues", () => {
+    const overflow: Issue = {
+      code: "text-overflow",
+      severity: "error",
+      message: "第 7 页文字溢出",
+      pageId: "page-seven",
+    };
+    expect(exportIssues(issues, "all", [issues[0], overflow])).toEqual([...issues, overflow]);
+    expect(issueStage(overflow)).toBe(2);
+    expect(issueStage({ ...overflow, code: "missing-glyph" })).toBe(2);
+    expect(issueStage({ ...overflow, code: "missing-image" })).toBe(1);
+    expect(issueStage({ ...overflow, code: "low-dpi" })).toBe(1);
+    expect(issueStage({ ...overflow, code: "review-image" })).toBe(1);
+    expect(issueStage(issues[0])).toBe(2);
+    expect(issueStage(issues[3])).toBe(0);
+  });
+});
+
+describe("structured request errors", () => {
+  afterEach(() => vi.restoreAllMocks());
+  it("preserves valid export issues for the workbench instead of only their message", async () => {
+    const issues: Issue[] = [
+      {
+        code: "text-overflow",
+        severity: "error",
+        message: "第 7 页文字溢出",
+        pageId: "page-seven",
+      },
+    ];
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ error: "正式导出被阻止", issues }, { status: 422 }),
+    );
+    await expect(request("/api/export")).rejects.toMatchObject({ status: 422, issues });
+  });
+  it("ignores malformed issue details without losing the original error", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(
+        { error: "正式导出被阻止", issues: [{ code: 4, message: {} }] },
+        { status: 422 },
+      ),
+    );
+    await expect(request("/api/export")).rejects.toEqual(
+      expect.objectContaining({ message: "正式导出被阻止", issues: [] }),
+    );
+    expect(new RequestError("失败", 500).status).toBe(500);
   });
 });
 

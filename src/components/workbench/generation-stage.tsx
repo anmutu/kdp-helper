@@ -239,6 +239,7 @@ export function GenerateControls({
   if (!book) return null;
   const total = targetIds.length * count;
   const overLimit = targetIds.length > 64 || total > 128;
+  const requiresStyleConfirmation = !sample && (targetIds.length > 1 || count > 1);
   const generate = () => {
     if (!total || overLimit) return;
     if (
@@ -289,7 +290,13 @@ export function GenerateControls({
         <button
           type="button"
           className="button primary"
-          disabled={store.locked || !book.specConfirmed || total === 0 || overLimit}
+          disabled={
+            store.locked ||
+            !book.specConfirmed ||
+            (requiresStyleConfirmation && !book.generationStyleConfirmed) ||
+            total === 0 ||
+            overLimit
+          }
           onClick={generate}
         >
           <Sparkles size={17} />
@@ -306,6 +313,11 @@ export function GenerateControls({
         </p>
       )}
       {!book.specConfirmed && <p className="inline-warning">请回到第一步保存并确认出版规格。</p>}
+      {requiresStyleConfirmation && !book.generationStyleConfirmed && (
+        <p className="inline-warning">
+          批量生成印刷图前，请先生成并选中一张样张，再确认当前画风方向。
+        </p>
+      )}
     </fieldset>
   );
 }
@@ -393,6 +405,9 @@ export function GenerationStage({
         ? [page.id]
         : []
       : generationTargets(book, batch);
+  const hasSelectedSample =
+    Boolean(book.cover.selectedAssetId) ||
+    book.pages.some((candidate) => candidate.kind === "illustration" && candidate.selectedAssetId);
   return (
     <div className="stage-stack">
       <div className="notice">
@@ -438,6 +453,38 @@ export function GenerationStage({
                   : "全部图文内页"
             }
           />
+          <section
+            className="panel style-confirmation"
+            aria-labelledby="style-confirmation-heading"
+          >
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">先锁定视觉方向</span>
+                <h3 id="style-confirmation-heading">确认当前画风方向</h3>
+              </div>
+              <Check size={20} strokeWidth={1.7} />
+            </div>
+            <p className="field-hint">
+              先生成低清试画，选中一张最符合预期的候选，再确认画风。确认后才允许批量生成印刷图；修改规格、画风或参考图会自动要求重新确认。
+            </p>
+            <div className="generate-action">
+              <button
+                type="button"
+                className="button"
+                disabled={store.locked || book.generationStyleConfirmed || !hasSelectedSample}
+                onClick={() =>
+                  store.edit((draft) => {
+                    draft.generationStyleConfirmed = true;
+                  })
+                }
+              >
+                {book.generationStyleConfirmed ? "已确认当前画风" : "确认并允许批量生成"}
+              </button>
+              {!hasSelectedSample && !book.generationStyleConfirmed && (
+                <span className="field-hint">请先在候选区选中一张样张。</span>
+              )}
+            </div>
+          </section>
           {page?.kind === "illustration" ? (
             <>
               <fieldset disabled={store.locked}>

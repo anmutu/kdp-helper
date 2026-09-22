@@ -4,6 +4,7 @@ import { z } from "zod";
 import { endpoint } from "@/server/http";
 import { store } from "@/server/store";
 import { AppError } from "@/server/errors";
+import { exportFileSchema, exportVersionSchema } from "@/domain/project-files";
 export const runtime = "nodejs";
 export async function GET(
   request: Request,
@@ -13,8 +14,8 @@ export async function GET(
     const { projectId, version, filename } = z
       .object({
         projectId: z.string().uuid(),
-        version: z.string().regex(/^(?:draft|print)-\d+-\d+-[a-f0-9]{8}$/),
-        filename: z.enum(["interior.pdf", "cover.pdf", "upload-notes.txt"]),
+        version: exportVersionSchema,
+        filename: exportFileSchema,
       })
       .parse(await context.params);
     await store.read(projectId);

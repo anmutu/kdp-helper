@@ -53,7 +53,13 @@ describe("generation safety", () => {
       new Response(
         JSON.stringify({
           choices: [
-            { message: { content: JSON.stringify({ pages: [{ title: "A", text: "hello" }] }) } },
+            {
+              message: {
+                content: JSON.stringify({
+                  pages: Array.from({ length: 26 }, () => ({ title: "A", text: "hello" })),
+                }),
+              },
+            },
           ],
         }),
       ),
@@ -62,11 +68,30 @@ describe("generation safety", () => {
     const book = createBook("test");
     book.theme = "森林动物";
     const pages = await generateOutline({ ...settings, textModel: "text-model" }, book, 26);
-    expect(pages).toHaveLength(1);
+    expect(pages).toHaveLength(26);
     const prompt = JSON.parse(fetch.mock.calls[0][1].body).messages[0].content as string;
     expect(prompt).toContain("恰好 26 页");
     expect(prompt).toContain("偶数");
     expect(prompt).toContain("请在此填写真实的版权信息和素材声明");
+  });
+  it("rejects text output whose page count does not match the request", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            { message: { content: JSON.stringify({ pages: [{ title: "A", text: "hello" }] }) } },
+          ],
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const book = createBook("test");
+    book.theme = "森林动物";
+    await expect(
+      generateOutline({ ...settings, textModel: "text-model" }, book, 26),
+    ).rejects.toThrow("页数");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(book.pages).toEqual([]);
   });
   it("requires spec confirmation and adequate requested pixels before spending", () => {
     const book = createBook("test");

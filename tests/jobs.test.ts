@@ -44,6 +44,7 @@ async function makeBook(
     current.config.bleed = true;
     current.config.ink = options.ink ?? "premium";
     current.specConfirmed = true;
+    current.generationStyleConfirmed = true;
     current.pages = Array.from({ length: options.pageCount ?? 24 }, (_, index) => ({
       ...newPage(),
       kind: index < 2 ? ("illustration" as const) : ("blank" as const),
@@ -52,6 +53,15 @@ async function makeBook(
     }));
   });
 }
+
+it("blocks batch print generation until the author confirms a sample direction", async () => {
+  const book = await makeBook();
+  await store.mutate(book.id, (current) => {
+    current.generationStyleConfirmed = false;
+  });
+  await expect(startJob(requestFor(book))).rejects.toThrow("画风");
+  expect(vi.mocked(generateImage)).not.toHaveBeenCalled();
+});
 
 function requestFor(book: Book, targetIds = book.pages.slice(0, 2).map((page) => page.id)) {
   return {
@@ -299,6 +309,9 @@ describe("pause, recovery, and uncertain responses", () => {
     const initial = await makeBook();
     const reference = await store.addAsset(initial.id, lowResolution, "import");
     const book = await store.attach(initial.id, "reference", reference);
+    await store.mutate(book.id, (current) => {
+      current.generationStyleConfirmed = true;
+    });
     await store.saveSettings({ referenceSupported: true });
     const preparation = deferred<void>(undefined);
     const readAsset = store.assetBytes.bind(store);

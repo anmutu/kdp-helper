@@ -16,8 +16,13 @@ export function validateGeneration(
   settings: Settings,
   targetIds: string[],
   sample: boolean,
+  count = 1,
 ) {
   if (!book.specConfirmed) throw new AppError("请先确认官方出版规格，再开始生图。");
+  if (!sample && (targetIds.length > 1 || count > 1)) {
+    if (!book.generationStyleConfirmed)
+      throw new AppError("请先生成并选中一张样张，再确认当前画风方向。");
+  }
   if (!settings.apiKey) throw new AppError("请先配置 API Key。");
   if (!settings.imageModel.trim()) throw new AppError("请填写生图模型。");
   if (book.referenceAssetId && !settings.referenceSupported)
@@ -108,7 +113,7 @@ export async function startJob(input: unknown) {
       settings = await store.settings();
     const unique = [...new Set(targetIds)];
     if (unique.length * count > 128) throw new AppError("单次最多生成 128 张候选，请分批处理。");
-    validateGeneration(book, settings, unique, sample);
+    validateGeneration(book, settings, unique, sample, count);
     const items = unique.flatMap((targetId) =>
       Array.from({ length: count }, () => ({ targetId, status: "queued" as const })),
     );
@@ -175,7 +180,13 @@ async function runJob(job: Job, snapshot: Book, settings: Settings, sample: bool
       continue;
     }
     try {
-      validateGeneration(current, settings, [item.targetId], sample);
+      validateGeneration(
+        current,
+        settings,
+        [item.targetId],
+        sample,
+        job.items.length / job.targetIds.length,
+      );
     } catch (error) {
       job.status = "paused";
       job.message = error instanceof Error ? error.message : "页面条件已变化，请重新确认。";

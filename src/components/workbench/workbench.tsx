@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  Archive,
   BookOpen,
   Check,
   CircleAlert,
@@ -19,7 +20,6 @@ import {
   X,
 } from "lucide-react";
 import type { PrintConfig } from "@/domain/book";
-import { styleAfterInkChange } from "@/domain/book";
 import { inkLabel, paperLabel, RULES } from "@/domain/print-spec";
 import { ContentStage, TrimPresets } from "./content-stage";
 import { GenerationStage } from "./generation-stage";
@@ -27,8 +27,9 @@ import { LayoutStage } from "./layout-stage";
 import { ExportStage } from "./export-stage";
 import { Field, Modal } from "./controls";
 import { SettingsDialog } from "./settings-dialog";
-import { downloadDraft, jobIsInFlight } from "./ui-helpers";
+import { downloadDraft, issueStage, jobIsInFlight } from "./ui-helpers";
 import { useWorkbench } from "./use-workbench";
+import { BackupDialog } from "./backup-dialog";
 
 const stages = [
   {
@@ -118,8 +119,10 @@ function NewBookSpecFields({
 export default function Workbench() {
   const store = useWorkbench();
   const [stage, setStage] = useState(0);
+  const [layoutTab, setLayoutTab] = useState<"pages" | "cover">("pages");
   const [selectedId, setSelectedId] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const [name, setName] = useState("");
   const [trim, setTrim] = useState<PrintConfig["trim"]>("8.5x8.5");
@@ -142,12 +145,8 @@ export default function Workbench() {
           : "保存失败 · 修改仍在本页";
   async function create() {
     if (!name.trim()) return;
-    const created = await store.create(name.trim());
+    const created = await store.create(name.trim(), { trim, ink, bleed, paper });
     if (!created) return;
-    store.edit((draft) => {
-      draft.config = { trim, ink, bleed, paper };
-      draft.style = styleAfterInkChange(ink, draft.style);
-    });
     setNewOpen(false);
     setStage(0);
     setName("");
@@ -205,6 +204,10 @@ export default function Workbench() {
           <button className="settings-button" onClick={() => setSettingsOpen(true)}>
             <Settings2 size={18} />
             连接与模型设置
+          </button>
+          <button className="settings-button" onClick={() => setBackupOpen(true)}>
+            <Archive size={18} />
+            备份与恢复
           </button>
           <span className="sidebar-footnote">
             作者的印刷工作台
@@ -296,6 +299,22 @@ export default function Workbench() {
               <span>/ 04</span>
             </span>
           </div>
+          {store.projectProblems.length > 0 && (
+            <section role="status" className="notice">
+              <strong>{store.projectProblems.length} 个项目暂时无法读取，其他绘本仍可使用</strong>
+              <p>
+                以下原文件未被修改或删除。请在本机数据目录中先备份这些文件，再检查或从备份恢复；
+                修复后刷新页面即可重新载入。默认数据目录为 data，自定义位置以 KDP_DATA_DIR 为准。
+              </p>
+              <ul>
+                {store.projectProblems.map((problem) => (
+                  <li key={problem.file}>
+                    <code>{problem.file}</code>：{problem.message}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {store.error && (
             <div role="alert" className="notice error global-error">
               <CircleAlert size={20} />
@@ -456,18 +475,21 @@ export default function Workbench() {
                 <GenerationStage store={store} selectedId={selectedPage} select={setSelectedId} />
               )}
               {stage === 2 && (
-                <LayoutStage store={store} selectedId={selectedPage} select={setSelectedId} />
+                <LayoutStage
+                  store={store}
+                  selectedId={selectedPage}
+                  select={setSelectedId}
+                  tab={layoutTab}
+                  setTab={setLayoutTab}
+                />
               )}
               {stage === 3 && (
                 <ExportStage
                   store={store}
                   goToIssue={(issue) => {
-                    if (issue.code.startsWith("cover-")) {
-                      navigate(2);
-                      return;
-                    }
+                    setLayoutTab(issue.code.startsWith("cover-") ? "cover" : "pages");
                     if (issue.pageId) setSelectedId(issue.pageId);
-                    navigate(0);
+                    navigate(issueStage(issue));
                   }}
                 />
               )}
@@ -505,6 +527,16 @@ export default function Workbench() {
         </footer>
       </div>
       {settingsOpen && <SettingsDialog book={book} close={() => setSettingsOpen(false)} />}
+      {backupOpen && (
+        <BackupDialog
+          store={store}
+          close={() => setBackupOpen(false)}
+          restored={() => {
+            setSelectedId("");
+            navigate(0);
+          }}
+        />
+      )}
       {newOpen && (
         <Modal title="新的一本，新的开始" close={() => setNewOpen(false)} busy={!!store.busy}>
           <form

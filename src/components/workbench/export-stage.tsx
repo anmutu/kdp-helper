@@ -5,6 +5,7 @@ import { coverGeometry, pageGeometry, sizeLabel, validateBook } from "@/domain/p
 import { Field } from "./controls";
 import { exportIssues, type ExportTarget } from "./ui-helpers";
 import type { Workbench } from "./use-workbench";
+import { ExportHistoryList } from "./export-history";
 
 export function ExportStage({
   store,
@@ -19,9 +20,16 @@ export function ExportStage({
   const [exportedSnapshot, setExportedSnapshot] = useState("");
   const [target, setTarget] = useState<ExportTarget>("all");
   const [resultTarget, setResultTarget] = useState<ExportTarget>("all");
+  const [serverCheck, setServerCheck] = useState<{ signature: string; issues: Issue[] } | null>(
+    null,
+  );
   const signature = JSON.stringify({ book, target });
   const reviewed = reviewedSnapshot === signature;
-  const issues = exportIssues(validateBook(book), target);
+  const issues = exportIssues(
+    validateBook(book),
+    target,
+    serverCheck?.signature === signature ? serverCheck.issues : [],
+  );
   const errors = issues.filter((issue) => issue.severity === "error");
   const warnings = issues.filter((issue) => issue.severity === "warning");
   const copyrightPlaceholder = book.pages.some((page) => page.text.includes("请在此填写"));
@@ -29,8 +37,11 @@ export function ExportStage({
   const cover = coverGeometry(book.config, book.pages.length);
   async function exportPdf(draft: boolean) {
     const exported = await store.exportBook(draft, draft ? false : reviewed, target);
-    if (exported) {
-      setResult(exported);
+    if (exported?.status === "blocked") {
+      setServerCheck({ signature, issues: exported.issues });
+    } else if (exported?.status === "exported") {
+      setServerCheck({ signature, issues: exported.result.issues });
+      setResult(exported.result);
       setExportedSnapshot(signature);
       setResultTarget(target);
     }
@@ -217,6 +228,12 @@ export function ExportStage({
           )}
         </section>
       )}
+      <ExportHistoryList
+        projectId={book.id}
+        revision={book.version}
+        refreshToken={result?.version || ""}
+        saved={store.saveState === "saved"}
+      />
       <p className="end-note">
         下一站：使用同一规格上传 KDP → 检查 Print Previewer → 建议订购纸质样书。
       </p>

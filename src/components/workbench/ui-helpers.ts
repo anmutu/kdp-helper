@@ -1,13 +1,40 @@
-import { newPage, type Book, type BookPage, type Issue, type Job } from "@/domain/book";
+import {
+  issueSchema,
+  newPage,
+  type Book,
+  type BookPage,
+  type Issue,
+  type Job,
+} from "@/domain/book";
 import { reconcileBook } from "@/domain/print-spec";
 
 export type BookEdit = (draft: Book) => void;
 export type ExportTarget = "all" | "interior";
 
-export function exportIssues(issues: Issue[], target: ExportTarget): Issue[] {
+export function exportIssues(
+  issues: Issue[],
+  target: ExportTarget,
+  serverIssues: Issue[] = [],
+): Issue[] {
+  const merged = [
+    ...new Map(
+      [...issues, ...serverIssues].map((issue) => [`${issue.code}:${issue.pageId || ""}`, issue]),
+    ).values(),
+  ];
   return target === "all"
-    ? issues
-    : issues.filter((issue) => !(issue.severity === "error" && issue.code.startsWith("cover-")));
+    ? merged
+    : merged.filter((issue) => !(issue.severity === "error" && issue.code.startsWith("cover-")));
+}
+
+export function issueStage(issue: Issue): 0 | 1 | 2 {
+  if (["missing-image", "low-dpi", "review-image"].includes(issue.code)) return 1;
+  if (
+    issue.code.startsWith("cover-") ||
+    issue.code === "text-overflow" ||
+    issue.code === "missing-glyph"
+  )
+    return 2;
+  return 0;
 }
 
 export function jobIsInFlight(job: Job): boolean {
@@ -113,6 +140,7 @@ export class RequestError extends Error {
   constructor(
     message: string,
     public status: number,
+    public issues: Issue[] = [],
   ) {
     super(message);
   }
@@ -128,11 +156,14 @@ export async function request<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
   const data = await response.json().catch(() => null);
-  if (!response.ok)
+  if (!response.ok) {
+    const parsed = issueSchema.array().safeParse(data?.issues);
     throw new RequestError(
       data?.error || `请求失败（${response.status}），请检查本地服务。`,
       response.status,
+      parsed.success ? parsed.data : [],
     );
+  }
   if (!data) throw new RequestError("服务返回了无法读取的响应。", response.status);
   return data as T;
 }

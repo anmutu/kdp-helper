@@ -58,6 +58,7 @@ export const bookSchema = z.object({
   updatedAt: z.string(),
   config: printConfigSchema,
   specConfirmed: z.boolean(),
+  generationStyleConfirmed: z.boolean().default(false),
   theme: z.string().max(5000),
   language: z.string().max(80),
   audience: z.string().max(200),
@@ -67,12 +68,17 @@ export const bookSchema = z.object({
   cover: coverSchema,
 });
 export type Book = z.infer<typeof bookSchema>;
-export type Issue = {
-  code: string;
-  severity: "error" | "warning";
-  message: string;
-  pageId?: string;
+export type ProjectListing = {
+  projects: Book[];
+  problems: { file: string; message: string }[];
 };
+export const issueSchema = z.object({
+  code: z.string(),
+  severity: z.enum(["error", "warning"]),
+  message: z.string(),
+  pageId: z.string().optional(),
+});
+export type Issue = z.infer<typeof issueSchema>;
 export type Rect = { x: number; y: number; width: number; height: number };
 export type PageGeometry = {
   width: number;
