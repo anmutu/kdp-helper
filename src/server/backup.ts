@@ -75,6 +75,41 @@ function assetIds(book: Book) {
   ]);
 }
 
+function remapHistoricalSnapshot(
+  snapshot: Book,
+  projectId: string,
+  pageIds: Map<string, string>,
+  assetIds: Map<string, string>,
+) {
+  const remapped = structuredClone(snapshot);
+  remapped.id = projectId;
+  remapped.referenceAssetId = remapped.referenceAssetId
+    ? (assetIds.get(remapped.referenceAssetId) ?? remapped.referenceAssetId)
+    : null;
+  remapped.pages = remapped.pages.map((page) => ({
+    ...page,
+    id: pageIds.get(page.id) ?? crypto.randomUUID(),
+    candidates: page.candidates.map((asset) => ({
+      ...asset,
+      id: assetIds.get(asset.id) ?? asset.id,
+    })),
+    selectedAssetId: page.selectedAssetId
+      ? (assetIds.get(page.selectedAssetId) ?? page.selectedAssetId)
+      : null,
+  }));
+  remapped.cover = {
+    ...remapped.cover,
+    candidates: remapped.cover.candidates.map((asset) => ({
+      ...asset,
+      id: assetIds.get(asset.id) ?? asset.id,
+    })),
+    selectedAssetId: remapped.cover.selectedAssetId
+      ? (assetIds.get(remapped.cover.selectedAssetId) ?? remapped.cover.selectedAssetId)
+      : null,
+  };
+  return remapped;
+}
+
 export async function backupProject(
   projectId: string,
   storage: Store = store,
@@ -252,6 +287,7 @@ export async function restoreProject(bytes: Uint8Array, storage: Store = store):
     }
     const newId = crypto.randomUUID();
     const ids = new Map([...assets.keys()].map((id) => [id, crypto.randomUUID()]));
+    const pageIds = new Map(book.pages.map((page) => [page.id, crypto.randomUUID()]));
     const restored = structuredClone(book);
     restored.id = newId;
     restored.name = `${book.name.slice(0, 190)}（恢复副本）`;
@@ -260,7 +296,7 @@ export async function restoreProject(bytes: Uint8Array, storage: Store = store):
     restored.specConfirmed = false;
     restored.generationStyleConfirmed = false;
     restored.referenceAssetId = book.referenceAssetId ? ids.get(book.referenceAssetId)! : null;
-    for (const page of restored.pages) page.id = crypto.randomUUID();
+    for (const page of restored.pages) page.id = pageIds.get(page.id)!;
     for (const target of [...restored.pages, restored.cover]) {
       target.candidates = target.candidates.map((asset) => ({ ...asset, id: ids.get(asset.id)! }));
       target.selectedAssetId = target.selectedAssetId ? ids.get(target.selectedAssetId)! : null;
@@ -289,7 +325,9 @@ export async function restoreProject(bytes: Uint8Array, storage: Store = store):
         const destination = path.join(temporary, name);
         await mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
         const content = name.endsWith("/snapshot.json")
-          ? jsonBytes({ ...snapshots.get(name.split("/")[1])!, id: newId })
+          ? jsonBytes(
+              remapHistoricalSnapshot(snapshots.get(name.split("/")[1])!, newId, pageIds, ids),
+            )
           : file;
         await writeFile(destination, content, { mode: 0o600 });
       }

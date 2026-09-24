@@ -90,6 +90,16 @@ describe("portable project backups", () => {
     expect(
       await readFile(path.join(target.root, "exports", restored.id, version, "cover.pdf"), "utf8"),
     ).toBe("%PDF-1.7\ncover");
+    const restoredSnapshot = JSON.parse(
+      await readFile(
+        path.join(target.root, "exports", restored.id, version, "snapshot.json"),
+        "utf8",
+      ),
+    );
+    expect(restoredSnapshot.id).toBe(restored.id);
+    expect(restoredSnapshot.pages[0].id).toBe(restored.pages[0].id);
+    expect(restoredSnapshot.pages[0].selectedAssetId).toBe(restored.pages[0].selectedAssetId);
+    expect(restoredSnapshot.referenceAssetId).toBe(restored.referenceAssetId);
     expect(await target.jobs()).toEqual([]);
   });
 
