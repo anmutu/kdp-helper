@@ -32,6 +32,13 @@ describe("local persistence and request boundary", () => {
     expect((await store.publicSettings()).hasKey).toBe(true);
     expect(JSON.stringify(await store.publicSettings())).not.toContain("secret-not-for-client");
   });
+  it("allows an explicit empty API key to clear the saved credential", async () => {
+    const store = await setup();
+    await store.saveSettings({ apiKey: "secret-to-clear" });
+    await store.saveSettings({ apiKey: "" });
+    expect((await store.settings()).apiKey).toBe("");
+    expect((await store.publicSettings()).hasKey).toBe(false);
+  });
   it("rejects path traversal and fails closed for damaged books", async () => {
     const store = await setup();
     await expect(store.read("../settings")).rejects.toThrow();

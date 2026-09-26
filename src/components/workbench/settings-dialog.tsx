@@ -8,6 +8,7 @@ import { request } from "./ui-helpers";
 export function SettingsDialog({ book, close }: { book: Book | null; close: () => void }) {
   const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [apiKey, setApiKey] = useState("");
+  const [clearKeyRequested, setClearKeyRequested] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -43,11 +44,12 @@ export function SettingsDialog({ book, close }: { book: Book | null; close: () =
           textModel,
           imageSize,
           referenceSupported,
-          ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+          ...(apiKey.trim() || clearKeyRequested ? { apiKey: apiKey.trim() } : {}),
         }),
       });
       setSettings(result.settings);
       setApiKey("");
+      setClearKeyRequested(false);
       setSaved(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "设置保存失败。");
@@ -86,7 +88,9 @@ export function SettingsDialog({ book, close }: { book: Book | null; close: () =
               label="API Key"
               hint={
                 settings.hasKey
-                  ? "已保存密钥；留空会保留原密钥。"
+                  ? clearKeyRequested
+                    ? "已选择清除本机密钥；点击保存后生效。"
+                    : "已保存密钥；留空会保留原密钥。"
                   : "尚未配置密钥；不影响手工编辑和图片导入。"
               }
             >
@@ -98,6 +102,7 @@ export function SettingsDialog({ book, close }: { book: Book | null; close: () =
                 placeholder={settings.hasKey ? "已配置 · 留空不更换" : "输入 API Key"}
                 onChange={(event) => {
                   setApiKey(event.target.value);
+                  setClearKeyRequested(false);
                   setSaved(false);
                 }}
               />
@@ -106,6 +111,22 @@ export function SettingsDialog({ book, close }: { book: Book | null; close: () =
               <KeyRound size={15} />
               {settings.hasKey ? "本地密钥已配置" : "本地密钥未配置"}
             </div>
+            {settings.hasKey && (
+              <button
+                type="button"
+                className="button quiet"
+                disabled={busy}
+                onClick={() => {
+                  if (!window.confirm("确定清除本机保存的 API Key 吗？之后将不能调用 AI 服务。"))
+                    return;
+                  setApiKey("");
+                  setClearKeyRequested(true);
+                  setSaved(false);
+                }}
+              >
+                {clearKeyRequested ? "已选择清除，点击保存生效" : "清除本机 API Key"}
+              </button>
+            )}
             <div className="field-pair">
               <Field label="图片模型">
                 <input

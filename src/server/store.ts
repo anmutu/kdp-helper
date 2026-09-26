@@ -186,7 +186,7 @@ export class Store {
     return this.lock("settings", async () => {
       const existing = await this.settings();
       const patch = settingsSchema.partial().parse(input);
-      if (!patch.apiKey) delete patch.apiKey;
+      if (!Object.prototype.hasOwnProperty.call(input, "apiKey")) delete patch.apiKey;
       const next = settingsSchema.parse({ ...existing, ...patch });
       next.baseUrl = providerUrl(next.baseUrl);
       await this.atomic("settings.json", next);
