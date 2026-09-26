@@ -197,3 +197,12 @@ git diff --check -- .
 - 导出检查中的“缺图、低 DPI、需要重新确认选图”现在直接跳到“生成与选图”步骤；文字溢出/缺字仍跳到排版，封面问题仍跳到封面排版。
 
 新增回归覆盖后，当前为 **11 个测试文件、104 项测试通过**；`npm run typecheck`、`npm run lint`、`npm run build` 与 `git diff --check -- .` 均通过。`npm audit --omit=dev` 因当前环境无法解析 `registry.npmjs.org` 未取得在线审计结果，未据此修改依赖。
+
+## 2026-09-24 前后并行会话归因备注（GLM-5.3-Flash 记录）
+
+「设置中可明确清除本机 API Key」功能（Store.saveSettings 区分未携带/显式
+空串、设置弹窗清除按钮、清除测试、README 指引）为后续开发会话留在工作区
+的改动，提交时被并行会话的 a17dc939（weixingame 项目）一并卷入，其提交
+信息未提及 kdp-helper。GLM-5.3-Flash 未编写该功能，但在验证中发现并代为
+核验：typecheck/lint/build 全绿，kdp-helper 测试 108 项、父仓库测试
+1063 项全部通过，内容已随 a17dc939 进入远端。特此记录以正归因。
