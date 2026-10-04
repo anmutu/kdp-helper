@@ -333,7 +333,22 @@ export function PageList({
         </button>
       </div>
       {book.pages.length % 2 === 1 && (
-        <p className="inline-warning">当前为奇数页。请明确添加留白页，不会自动补页。</p>
+        <p className="inline-warning">
+          当前为奇数页。请明确添加留白页，不会自动补页。
+          <button
+            type="button"
+            className="text-button"
+            disabled={disabled || book.pages.length >= 828}
+            onClick={() => {
+              if (!window.confirm("在全书末尾添加一页明确留白页，凑成偶数页？")) return;
+              edit((draft) => {
+                draft.pages.push({ ...newPage(), kind: "blank" });
+              });
+            }}
+          >
+            末尾补一页留白
+          </button>
+        </p>
       )}
     </aside>
   );
