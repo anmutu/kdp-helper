@@ -98,6 +98,20 @@ export function CandidatePicker({
   const chosen = selectedAsset(target);
   const pixels = pixelRequirements(rect);
   const [preview, setPreview] = useState<{ asset: Asset; index: number } | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const compareAssets = compareIds
+    .map((id) => target.candidates.find((asset) => asset.id === id))
+    .filter((asset): asset is Asset => !!asset);
+  const toggleCompare = (id: string) =>
+    setCompareIds((current) =>
+      current.includes(id)
+        ? current.filter((entry) => entry !== id)
+        : current.length >= 3
+          ? current
+          : [...current, id],
+    );
   return (
     <section className="candidate-section">
       <div className="section-heading">
@@ -112,13 +126,37 @@ export function CandidatePicker({
       <p className="candidate-requirement">
         当前画框至少需要 {pixels.width} × {pixels.height} px；缩放裁切后还需达到 300 DPI。
       </p>
+      {target.candidates.length > 1 && (
+        <div className="compare-bar">
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={compareMode}
+              onChange={(event) => {
+                setCompareMode(event.target.checked);
+                setCompareIds([]);
+              }}
+            />
+            <span>对比模式（勾选 2–3 张并排比较）</span>
+          </label>
+          {compareMode && compareIds.length >= 2 && (
+            <button type="button" className="button" onClick={() => setCompareOpen(true)}>
+              并排对比 {compareIds.length} 张
+            </button>
+          )}
+        </div>
+      )}
       {target.candidates.length ? (
         <div className="candidate-grid">
           {target.candidates.map((asset, index) => {
             const dpi = Math.floor(effectiveDpi(asset, rect, zoom));
             const selected = target.selectedAssetId === asset.id;
+            const inCompare = compareIds.includes(asset.id);
             return (
-              <div className={`candidate ${selected ? "selected" : ""}`} key={asset.id}>
+              <div
+                className={`candidate ${selected ? "selected" : ""} ${inCompare ? "in-compare" : ""}`}
+                key={asset.id}
+              >
                 <button
                   type="button"
                   className="candidate-choose"
@@ -153,6 +191,16 @@ export function CandidatePicker({
                     </small>
                   </div>
                 </button>
+                {compareMode ? (
+                  <label className="candidate-compare-check" title="加入对比">
+                    <input
+                      type="checkbox"
+                      checked={inCompare}
+                      onChange={() => toggleCompare(asset.id)}
+                    />
+                    对比
+                  </label>
+                ) : null}
                 <button
                   type="button"
                   className="candidate-zoom"
@@ -219,6 +267,49 @@ export function CandidatePicker({
           choose={choose}
           close={() => setPreview(null)}
         />
+      )}
+      {compareOpen && compareAssets.length >= 2 && (
+        <Modal
+          title={`并排对比 · ${compareAssets.length} 张候选`}
+          close={() => setCompareOpen(false)}
+        >
+          <div className="compare-grid">
+            {compareAssets.map((asset) => {
+              const dpi = Math.floor(effectiveDpi(asset, rect, zoom));
+              const index = target.candidates.findIndex((entry) => entry.id === asset.id);
+              return (
+                <figure className="compare-column" key={asset.id}>
+                  <Image
+                    unoptimized
+                    src={`/api/assets/${asset.id}`}
+                    alt={`对比候选 ${index + 1}`}
+                    width={asset.width}
+                    height={asset.height}
+                    className="compare-image"
+                  />
+                  <figcaption className="page-metrics">
+                    <span>方案 {String(index + 1).padStart(2, "0")}</span>
+                    <span className={dpi < 300 ? "warning-text" : "success"}>{dpi} DPI</span>
+                    <span>
+                      {asset.width} × {asset.height} px
+                    </span>
+                  </figcaption>
+                  <button
+                    type="button"
+                    className="button primary"
+                    disabled={disabled}
+                    onClick={() => {
+                      choose(asset.id);
+                      setCompareOpen(false);
+                    }}
+                  >
+                    选用这张
+                  </button>
+                </figure>
+              );
+            })}
+          </div>
+        </Modal>
       )}
     </section>
   );
