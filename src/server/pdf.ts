@@ -11,6 +11,8 @@ import {
   paperLabel,
   pageGeometry,
   coverGeometry,
+  printingCostEstimate,
+  royaltyEstimate,
   selectedAsset,
   validateBook,
 } from "@/domain/print-spec";
@@ -329,6 +331,12 @@ export async function exportBook(
     `文件性质：${draft ? "草稿，禁止上传" : "已通过本工具检查，尚未通过 KDP 审核"}`,
     `规格：${book.config.trim} 英寸 / ${inkLabel(book.config.ink)} / ${paperLabel(book.config.paper)} / ${book.config.bleed ? "内页出血" : "内页不出血"}`,
     `内页：${book.pages.length} 页，封面另计`,
+    `单册印刷成本（美区估算）：US ${printingCostEstimate(book.config, book.pages.length).toFixed(2)}；来源 ${RULES.printCostUrl}`,
+    ...(book.listPrice !== null
+      ? [
+          `版税试算（美区，定价 US ${book.listPrice.toFixed(2)}，税率 ${(royaltyEstimate(book.config, book.pages.length, book.listPrice).rate * 100).toFixed(0)}%）：单册约 US ${royaltyEstimate(book.config, book.pages.length, book.listPrice).royalty.toFixed(2)}；扩展分销约 US ${royaltyEstimate(book.config, book.pages.length, book.listPrice).expandedRoyalty.toFixed(2)}。估算仅供定价参考，实际以 KDP 结算为准（${RULES.royaltyUrl}）。`,
+        ]
+      : []),
     `图片已扁平化并转换为 CMYK JPEG${book.config.ink === "black" ? "（仅内页插图转灰度；封面插图不随内页墨水设置转灰度）" : ""}，字体嵌入。屏幕与印刷仍可能有色差，本工具不宣称 PDF/X 认证。`,
     `官方规则版本：${RULES.version}`,
     `官方内页规则：${RULES.manuscriptUrl}`,

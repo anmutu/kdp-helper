@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bookSchema,
   defaultBlackWhiteStyle,
   defaultColorStyle,
   newPage,
@@ -20,6 +21,7 @@ import {
   effectiveDpi,
   pageRange,
   printingCostEstimate,
+  royaltyEstimate,
   sizeLabel,
   validateBook,
   specKey,
@@ -199,4 +201,31 @@ it("keeps text color presets aligned with the page schema default", () => {
   const stripped = JSON.parse(JSON.stringify({ ...newPage(), textColor: undefined }));
   expect(pageSchema.parse(stripped).textColor).toBe("ink");
   expect(Object.keys(TEXT_COLORS)).toEqual(["ink", "sepia", "navy", "slate", "warmgray"]);
+});
+
+describe("US paperback royalty estimate", () => {
+  const black: PrintConfig = { trim: "8.5x8.5", ink: "black", bleed: false, paper: "cream" };
+  it("applies the official 50%/60% breakpoint at $9.98/$9.99", () => {
+    const low = royaltyEstimate(black, 26, 9.98);
+    expect(low.rate).toBe(0.5);
+    expect(low.royalty).toBeCloseTo(0.5 * 9.98 - 2.84, 4);
+    const high = royaltyEstimate(black, 26, 9.99);
+    expect(high.rate).toBe(0.6);
+    expect(high.royalty).toBeCloseTo(0.6 * 9.99 - 2.84, 4);
+    expect(high.royalty - low.royalty).toBeGreaterThan(0.9);
+  });
+  it("marks prices near the threshold and computes expanded distribution at 40%", () => {
+    expect(royaltyEstimate(black, 26, 9.5).nearThreshold).toBe(true);
+    expect(royaltyEstimate(black, 26, 8.99).nearThreshold).toBe(false);
+    expect(royaltyEstimate(black, 26, 10.5).nearThreshold).toBe(false);
+    expect(royaltyEstimate(black, 26, 12).expandedRoyalty).toBeCloseTo(0.4 * 12 - 2.84, 4);
+  });
+  it("keeps list price optional in the book schema with a null default", () => {
+    const book = createBook("定价测试");
+    expect(book.listPrice).toBeNull();
+    const restored = bookSchema.parse({ ...book, listPrice: undefined });
+    expect(restored.listPrice).toBeNull();
+    const priced = bookSchema.parse({ ...book, listPrice: 9.99 });
+    expect(priced.listPrice).toBeCloseTo(9.99, 6);
+  });
 });

@@ -20,6 +20,8 @@ export const RULES = {
   calculatorUrl: "https://kdp.amazon.com/cover-calculator",
   printCostUrl: "https://kdp.amazon.com/en_US/help/topic/G201834340",
   printCostCheckedAt: "2026-09-18",
+  royaltyUrl: "https://kdp.amazon.com/en_US/help/topic/G201834330",
+  royaltyCheckedAt: "2026-10-05",
   trims: {
     "8.25x8.25": {
       label: "经典方形",
@@ -198,6 +200,23 @@ export function printingCostEstimate(config: PrintConfig, pageCount: number) {
   if (config.ink === "standard") return 1.0 + 0.0402 * pageCount;
   return pageCount <= 40 ? 4.2 : 1.0 + 0.08 * pageCount;
 }
+// 美区（amazon.com）平装版税试算。来源：RULES.royaltyUrl，核对日期见
+// royaltyCheckedAt。公式：（版税率 × 定价）− 印刷成本。amazon.com 上定价
+// ≤ $9.98 版税率 50%，≥ $9.99 为 60%（断点两侧常相差约一美元版税）；
+// 扩展分销（Expanded Distribution）为 40%。平装无配送费。此为估算，
+// 不含税与实际结算差异；印刷成本按 printingCostEstimate 的 Large trim 档。
+export function royaltyEstimate(config: PrintConfig, pageCount: number, listPrice: number) {
+  const rate = listPrice <= 9.98 ? 0.5 : 0.6;
+  const printingCost = printingCostEstimate(config, pageCount);
+  const royalty = rate * listPrice - printingCost;
+  return {
+    rate,
+    printingCost,
+    royalty,
+    expandedRoyalty: 0.4 * listPrice - printingCost,
+    nearThreshold: listPrice >= 9.0 && listPrice <= 9.98,
+  };
+}
 export function effectiveDpi(asset: Pick<Asset, "width" | "height">, rect: Rect, zoom = 1) {
   return Math.min(asset.width / (rect.width / 72), asset.height / (rect.height / 72)) / zoom;
 }
@@ -294,6 +313,7 @@ export function createBook(
     theme: "",
     language: "English",
     audience: "3–6 岁",
+    listPrice: null,
     style: parsedConfig.ink === "black" ? defaultBlackWhiteStyle : defaultColorStyle,
     referenceAssetId: null,
     pages: [],

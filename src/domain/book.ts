@@ -63,6 +63,7 @@ export const bookSchema = z.object({
   language: z.string().max(80),
   audience: z.string().max(200),
   style: z.string().max(5000),
+  listPrice: z.number().min(0.99).max(9999).nullable().default(null),
   referenceAssetId: z.string().uuid().nullable(),
   pages: z.array(pageSchema).max(828),
   cover: coverSchema,

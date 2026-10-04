@@ -26,6 +26,7 @@ import {
   pageRange,
   pixelRequirements,
   printingCostEstimate,
+  royaltyEstimate,
   RULES,
   selectedAsset,
   sizeLabel,
@@ -140,6 +141,28 @@ export function SpecEditor({
               <option value="bleed">有出血 · 画面到边</option>
             </select>
           </Field>
+          <Field
+            label="试算定价（美元，可选）"
+            hint="按官方美区公式估算单册版税；实际上架定价在 KDP 填写。"
+          >
+            <input
+              type="number"
+              min={0.99}
+              max={9999}
+              step={0.01}
+              value={book.listPrice ?? ""}
+              placeholder="例如 9.99"
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                edit((draft) => {
+                  draft.listPrice =
+                    event.target.value.trim() !== "" && Number.isFinite(value) && value >= 0.99
+                      ? Math.min(9999, value)
+                      : null;
+                });
+              }}
+            />
+          </Field>
         </div>
         <div className="spec-facts">
           <span>
@@ -164,10 +187,42 @@ export function SpecEditor({
               <strong>US ${printingCostEstimate(book.config, book.pages.length).toFixed(2)}</strong>
             </span>
           )}
+          {book.pages.length > 0 && book.listPrice !== null && (
+            <span>
+              单册版税（美区估算，税率{" "}
+              {(royaltyEstimate(book.config, book.pages.length, book.listPrice).rate * 100).toFixed(
+                0,
+              )}
+              %）{" "}
+              <strong
+                className={
+                  royaltyEstimate(book.config, book.pages.length, book.listPrice).royalty <= 0
+                    ? "warning-text"
+                    : undefined
+                }
+              >
+                US $
+                {royaltyEstimate(book.config, book.pages.length, book.listPrice).royalty.toFixed(2)}
+              </strong>
+            </span>
+          )}
           <span>
             当前 <strong>{book.pages.length} 页</strong>
           </span>
         </div>
+        {book.listPrice !== null &&
+          book.pages.length > 0 &&
+          royaltyEstimate(book.config, book.pages.length, book.listPrice).nearThreshold && (
+            <p className="inline-warning">
+              美区定价 ≥ $9.99 时版税率为 60%；当前试算定价按 50% 计算，定为 $9.99 通常每册多得约 US
+              $
+              {(
+                royaltyEstimate(book.config, book.pages.length, 9.99).royalty -
+                royaltyEstimate(book.config, book.pages.length, book.listPrice).royalty
+              ).toFixed(2)}
+              。
+            </p>
+          )}
         <label className="check-row spec-confirm">
           <input
             type="checkbox"
