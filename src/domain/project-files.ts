@@ -12,6 +12,9 @@ export const BACKUP_LIMITS = {
   jsonBytes: 16 * 1024 * 1024,
   entries: 4096,
 } as const;
+export const EXPORT_LIMITS = {
+  fileBytes: 650 * 1024 * 1024,
+} as const;
 
 export type ExportHistoryItem = Omit<ExportResult, "issues"> & {
   sourceVersion: number;

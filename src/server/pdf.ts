@@ -1,4 +1,4 @@
-import { readFile, mkdir, writeFile, rename } from "node:fs/promises";
+import { readFile, mkdir, writeFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, type PDFFont, type PDFPage, cmyk } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
@@ -347,18 +347,23 @@ export async function exportBook(
     `生成时间：${new Date().toISOString()}`,
     ...result.issues.map((issue) => `${issue.severity}: ${issue.message}`),
   ].join("\n");
-  await writeFile(path.join(temporary, "interior.pdf"), result.interior, { mode: 0o600 });
-  if (result.cover)
-    await writeFile(path.join(temporary, "cover.pdf"), result.cover, { mode: 0o600 });
-  await writeFile(
-    path.join(temporary, "upload-notes.txt"),
-    `输出范围：${target === "interior" ? "仅内页，封面尚未随本次导出；不代表整本出版文件已齐" : "完整内页与封面"}\n${notes}`,
-    { mode: 0o600 },
-  );
-  await writeFile(path.join(temporary, "snapshot.json"), JSON.stringify(book, null, 2), {
-    mode: 0o600,
-  });
-  await rename(temporary, path.join(parent, version));
+  try {
+    await writeFile(path.join(temporary, "interior.pdf"), result.interior, { mode: 0o600 });
+    if (result.cover)
+      await writeFile(path.join(temporary, "cover.pdf"), result.cover, { mode: 0o600 });
+    await writeFile(
+      path.join(temporary, "upload-notes.txt"),
+      `输出范围：${target === "interior" ? "仅内页，封面尚未随本次导出；不代表整本出版文件已齐" : "完整内页与封面"}\n${notes}`,
+      { mode: 0o600 },
+    );
+    await writeFile(path.join(temporary, "snapshot.json"), JSON.stringify(book, null, 2), {
+      mode: 0o600,
+    });
+    await rename(temporary, path.join(parent, version));
+  } catch (error) {
+    await rm(temporary, { recursive: true, force: true }).catch(() => undefined);
+    throw error;
+  }
   return {
     version,
     draft,

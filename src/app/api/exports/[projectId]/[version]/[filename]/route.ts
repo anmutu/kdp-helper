@@ -1,10 +1,10 @@
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { endpoint } from "@/server/http";
 import { store } from "@/server/store";
 import { AppError } from "@/server/errors";
-import { exportFileSchema, exportVersionSchema } from "@/domain/project-files";
+import { exportFileSchema, exportVersionSchema, EXPORT_LIMITS } from "@/domain/project-files";
+import { readBoundedFile } from "@/server/exports";
 export const runtime = "nodejs";
 export async function GET(
   request: Request,
@@ -21,9 +21,14 @@ export async function GET(
     await store.read(projectId);
     let bytes: Buffer;
     try {
-      bytes = await readFile(path.join(store.root, "exports", projectId, version, filename));
-    } catch {
-      throw new AppError("导出文件不存在。", 404);
+      bytes = await readBoundedFile(
+        path.join(store.root, "exports", projectId, version, filename),
+        EXPORT_LIMITS.fileBytes,
+      );
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT")
+        throw new AppError("导出文件不存在。", 404);
+      throw error;
     }
     return new Response(new Uint8Array(bytes), {
       headers: {
