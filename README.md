@@ -3,13 +3,15 @@
 [![CI](https://github.com/anmutu/kdp-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/anmutu/kdp-helper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+官网 / Website：**https://anmutu.github.io/kdp-helper/**
+
 给作者自己使用的本地绘本工作台。先确认来自 KDP 官方文档的出版规格，再整理页面、生图或导入素材、挑选排版，最后导出内页 PDF 和完整封面 PDF。
 
 没有注册、会员、收费平台或云同步。外部模型调用仍可能按你的服务商规则收费。
 
 ## English
 
-**KDP Helper** is a local-first, single-author workbench for making print-ready children's picture books for [Amazon KDP](https://kdp.amazon.com). It walks you through the whole loop: pick a verified print spec (trim / ink / paper / bleed) → write pages (manually, from a template, or with a text model) → generate or import illustrations → compare and pick candidates → lay out text and cover → export a validated `interior.pdf` + wraparound `cover.pdf` + upload notes.
+**KDP Helper** is a local-first, single-author workbench for making print-ready children's picture books for [Amazon KDP](https://kdp.amazon.com). Website: **https://anmutu.github.io/kdp-helper/**. It walks you through the whole loop: pick a verified print spec (trim / ink / paper / bleed) → write pages (manually, from a template, or with a text model) → generate or import illustrations → compare and pick candidates → lay out text and cover → export a validated `interior.pdf` + wraparound `cover.pdf` + upload notes.
 
 Why authors like it:
 

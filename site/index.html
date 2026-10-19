@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>纸间 · KDP Helper — 本地绘本工作台 | Local Picture-Book Studio for Amazon KDP</title>
+    <meta
+      name="description"
+      content="为独立作者打造的亚马逊 KDP 绘本本地工作台：官方印刷规格核对、插画候选对比、排版与封面、成本版税试算、校验过的 PDF 导出。MIT 开源、无账号、数据全在本机。A local-first, MIT-licensed workbench for making print-ready children's picture books for Amazon KDP."
+    />
+    <meta
+      name="keywords"
+      content="KDP, Amazon KDP, 绘本, 童书, 自出版, picture book, self-publishing, print-ready PDF, indie author"
+    />
+    <link rel="canonical" href="https://anmutu.github.io/kdp-helper/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="纸间 · KDP Helper — 本地绘本工作台" />
+    <meta
+      property="og:description"
+      content="规格核对 · 插画候选 · 排版封面 · 校验导出。MIT 开源，本地运行，无账号无云端。"
+    />
+    <meta property="og:url" content="https://anmutu.github.io/kdp-helper/" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "KDP Helper (纸间)",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "macOS, Linux",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "license": "https://opensource.org/licenses/MIT",
+        "url": "https://anmutu.github.io/kdp-helper/",
+        "description": "Local-first workbench for making print-ready children's picture books for Amazon KDP."
+      }
+    </script>
+    <style>
+      :root {
+        --paper: #f6f2ea;
+        --paper-deep: #efe8db;
+        --ink: #1f2620;
+        --muted: #6f7a70;
+        --accent: #3f7a52;
+        --accent-deep: #2e5c3e;
+        --line: #ddd4c4;
+        --warn: #a15c2a;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI",
+          sans-serif;
+        line-height: 1.75;
+        -webkit-font-smoothing: antialiased;
+      }
+      .serif {
+        font-family: "Songti SC", "STSong", "Noto Serif SC", Georgia, serif;
+      }
+      .wrap {
+        max-width: 1020px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      a {
+        color: var(--accent-deep);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      /* language toggle */
+      .lang-switch {
+        position: fixed;
+        top: 16px;
+        right: 18px;
+        z-index: 10;
+        display: flex;
+        gap: 6px;
+        background: rgba(246, 242, 234, 0.92);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px;
+      }
+      .lang-switch button {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-size: 12px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      .lang-switch button.on {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      body[data-lang="en"] [data-sec="zh"],
+      body[data-lang="zh"] [data-sec="en"] {
+        display: none;
+      }
+
+      header.hero {
+        padding: 88px 0 64px;
+        border-bottom: 1px solid var(--line);
+        position: relative;
+        overflow: hidden;
+      }
+      .tags {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 26px;
+      }
+      .tag {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: var(--accent-deep);
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        padding: 3px 12px;
+      }
+      h1 {
+        font-size: clamp(30px, 5vw, 46px);
+        line-height: 1.28;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      .hero .sub {
+        max-width: 620px;
+        margin: 18px 0 30px;
+        color: var(--muted);
+        font-size: 16.5px;
+      }
+      .cta {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 22px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        border: 1px solid var(--ink);
+        color: var(--ink);
+        background: transparent;
+      }
+      .btn.primary {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      .btn:hover {
+        text-decoration: none;
+        opacity: 0.88;
+      }
+      .start-hint {
+        margin-top: 22px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      code {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 0.92em;
+        background: var(--paper-deep);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 1px 7px;
+      }
+
+      section {
+        padding: 58px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      h2 {
+        font-size: 26px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .lede {
+        color: var(--muted);
+        margin-bottom: 34px;
+        max-width: 640px;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+        gap: 18px;
+      }
+      .step {
+        background: #fffdf8;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 22px;
+      }
+      .step .no {
+        font-family: Georgia, serif;
+        font-size: 13px;
+        color: var(--accent);
+        letter-spacing: 0.14em;
+      }
+      .step h3 {
+        font-size: 16.5px;
+        margin: 8px 0 6px;
+      }
+      .step p {
+        font-size: 13.5px;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+        gap: 18px;
+      }
+      .card {
+        background: #fffdf8;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 24px;
+      }
+      .card h3 {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+      .card p {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .card .k {
+        color: var(--accent-deep);
+        font-weight: 600;
+      }
+
+      details {
+        background: #fffdf8;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+      }
+      details summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 15px;
+      }
+      details p {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 14.5px;
+      }
+
+      footer {
+        padding: 44px 0 60px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer .links {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      @media (max-width: 640px) {
+        header.hero {
+          padding-top: 66px;
+        }
+      }
+    </style>
+  </head>
+  <body data-lang="zh">
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button id="btn-zh" class="on" onclick="setLang('zh')">中文</button>
+      <button id="btn-en" onclick="setLang('en')">English</button>
+    </div>
+    <script>
+      function setLang(l) {
+        document.body.dataset.lang = l;
+        document.documentElement.lang = l === "zh" ? "zh-CN" : "en";
+        document.getElementById("btn-zh").classList.toggle("on", l === "zh");
+        document.getElementById("btn-en").classList.toggle("on", l === "en");
+      }
+    </script>
+
+    <header class="hero">
+      <div class="wrap" data-sec="zh">
+        <div class="tags">
+          <span class="tag">MIT 开源</span><span class="tag">本地运行</span
+          ><span class="tag">无账号 · 无云端</span><span class="tag">v0.1.0</span>
+        </div>
+        <h1 class="serif">一本书，<br />从一张干净的纸开始。</h1>
+        <p class="sub">
+          「纸间 · KDP Helper」是为独立作者打造的亚马逊 KDP
+          绘本工作台：印刷规格、插画、排版、导出，全流程在本机完成。每一条印刷规则都来自官方文档并标注核对日期——<strong>绝不猜测</strong>。
+        </p>
+        <div class="cta">
+          <a
+            class="btn primary"
+            href="https://github.com/anmutu/kdp-helper"
+            target="_blank"
+            rel="noreferrer"
+            >前往 GitHub 仓库</a
+          >
+          <a
+            class="btn"
+            href="https://github.com/anmutu/kdp-helper/releases/tag/v0.1.0"
+            target="_blank"
+            rel="noreferrer"
+            >v0.1.0 发布说明</a
+          >
+        </div>
+        <p class="start-hint">
+          需要 Node.js 24：<code>npm install</code> 然后 <code>npm run dev</code> → 打开
+          <code>127.0.0.1:3210</code>
+        </p>
+      </div>
+      <div class="wrap" data-sec="en">
+        <div class="tags">
+          <span class="tag">MIT</span><span class="tag">Local-first</span
+          ><span class="tag">No accounts · No cloud</span><span class="tag">v0.1.0</span>
+        </div>
+        <h1 class="serif">A book begins<br />with a clean sheet of paper.</h1>
+        <p class="sub">
+          <strong>KDP Helper</strong> is a local-first workbench for indie authors making
+          print-ready children's picture books for Amazon KDP. Every print rule comes from official
+          documentation with a source link and a checked date — <strong>nothing is guessed</strong>.
+        </p>
+        <div class="cta">
+          <a
+            class="btn primary"
+            href="https://github.com/anmutu/kdp-helper"
+            target="_blank"
+            rel="noreferrer"
+            >GitHub repository</a
+          >
+          <a
+            class="btn"
+            href="https://github.com/anmutu/kdp-helper/releases/tag/v0.1.0"
+            target="_blank"
+            rel="noreferrer"
+            >v0.1.0 release notes</a
+          >
+        </div>
+        <p class="start-hint">
+          Requires Node.js 24: <code>npm install</code> then <code>npm run dev</code> → open
+          <code>127.0.0.1:3210</code>
+        </p>
+      </div>
+    </header>
+
+    <section>
+      <div class="wrap" data-sec="zh">
+        <h2 class="serif">做一本书的四步</h2>
+        <p class="lede">从确定规格到导出可上传的出版文件，一条清晰的路径。</p>
+      </div>
+      <div class="wrap" data-sec="en">
+        <h2 class="serif">Four steps to a finished book</h2>
+        <p class="lede">A clear path from print spec to upload-ready files.</p>
+      </div>
+      <div class="wrap steps">
+        <div class="step" data-sec="zh">
+          <span class="no">01</span>
+          <h3>先定规格</h3>
+          <p>
+            开本、黑白/彩色墨水、纸张、出血。页数范围、书脊宽度、装订边与每张图的最少像素，随选择即时算出。
+          </p>
+        </div>
+        <div class="step" data-sec="en">
+          <span class="no">01</span>
+          <h3>Pick the spec</h3>
+          <p>
+            Trim, ink, paper, bleed. Page ranges, spine width, margins and minimum pixels update as
+            you choose.
+          </p>
+        </div>
+        <div class="step" data-sec="zh">
+          <span class="no">02</span>
+          <h3>写故事，配插画</h3>
+          <p>
+            手动写、用模板或让文字模型起草。插画可调用你自己的生图接口，也可以完全导入自己画的图。
+          </p>
+        </div>
+        <div class="step" data-sec="en">
+          <span class="no">02</span>
+          <h3>Write &amp; illustrate</h3>
+          <p>
+            Write by hand, from a template, or with a text model. Illustrations via your own image
+            API — or import your own art entirely.
+          </p>
+        </div>
+        <div class="step" data-sec="zh">
+          <span class="no">03</span>
+          <h3>挑选与排版</h3>
+          <p>候选并排对比、灯箱放大查看来源；调整字号、颜色、裁切与封面，跨页预览翻书效果。</p>
+        </div>
+        <div class="step" data-sec="en">
+          <span class="no">03</span>
+          <h3>Pick &amp; lay out</h3>
+          <p>
+            Compare candidates side-by-side, zoom in to inspect provenance; tune type, colors, crops
+            and the wraparound cover.
+          </p>
+        </div>
+        <div class="step" data-sec="zh">
+          <span class="no">04</span>
+          <h3>校验导出</h3>
+          <p>
+            奇数页、低清、缺字、文字溢出都会拦下正式导出。产出内页 PDF、完整封面 PDF 与上传说明。
+          </p>
+        </div>
+        <div class="step" data-sec="en">
+          <span class="no">04</span>
+          <h3>Validate &amp; export</h3>
+          <p>
+            Odd pages, low DPI, missing glyphs and overflow block the production export. You get
+            interior + cover PDFs and upload notes.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap" data-sec="zh">
+        <h2 class="serif">它认真对待你的钱和你的书</h2>
+        <p class="lede">工具不替你做决定，但绝不让你白花钱或交出印不了的文件。</p>
+      </div>
+      <div class="wrap" data-sec="en">
+        <h2 class="serif">Serious about your money and your book</h2>
+        <p class="lede">
+          It never decides for you — but it won't let you waste money or ship an unprintable file.
+        </p>
+      </div>
+      <div class="wrap grid">
+        <div class="card" data-sec="zh">
+          <h3>规格先行，带来源</h3>
+          <p>
+            页数上下限、书脊系数、出血几何、装订边分档、300 DPI 像素要求——每个数字标注<span
+              class="k"
+              >官方文档链接与核对日期</span
+            >。规则变了改代码和测试，运行时零猜测。
+          </p>
+        </div>
+        <div class="card" data-sec="en">
+          <h3>Specs with receipts</h3>
+          <p>
+            Page limits, spine coefficients, bleed geometry, gutter tiers, 300-DPI minimums — every
+            number carries an <span class="k">official source link and checked date</span>. Rule
+            changes happen in code and tests, never guesses at runtime.
+          </p>
+        </div>
+        <div class="card" data-sec="zh">
+          <h3>费用护栏</h3>
+          <p>
+            请求像素不够印刷，<span class="k">付费调用直接拒绝</span
+            >；一张低清图回来整批暂停；断线或超时的请求永不自动重试，操作号防重复计费。
+          </p>
+        </div>
+        <div class="card" data-sec="en">
+          <h3>Money guardrails</h3>
+          <p>
+            Paid generation calls are <span class="k">refused when pixels can't print</span>; a
+            low-res result pauses the batch; uncertain requests never auto-retry; persistent
+            operation IDs prevent double billing.
+          </p>
+        </div>
+        <div class="card" data-sec="zh">
+          <h3>成本与版税试算</h3>
+          <p>
+            美区印刷成本随墨水/纸张/页数即时估算；版税试算会提醒你
+            <span class="k">$9.98 与 $9.99 之间 50%→60% 的税率断点</span>——定价差 1 美分，每册常差约
+            1 美元。
+          </p>
+        </div>
+        <div class="card" data-sec="en">
+          <h3>Cost &amp; royalty estimates</h3>
+          <p>
+            US printing cost per ink/paper tier in real time, with a royalty estimator that flags
+            the <span class="k">$9.98/$9.99 (50%→60%) rate breakpoint</span> — one cent of list
+            price, roughly a dollar of royalty.
+          </p>
+        </div>
+        <div class="card" data-sec="zh">
+          <h3>真实文件校验</h3>
+          <p>
+            导出的是真实 PDF：嵌入中文字体、无裁切标记、图片扁平化转
+            CMYK（黑白内页自动转灰度）。<span class="k">草稿永远可导出（带水印）</span
+            >，正式文件必须过全部检查。
+          </p>
+        </div>
+        <div class="card" data-sec="en">
+          <h3>Real-file validation</h3>
+          <p>
+            Exports are real PDFs: embedded CJK font, no crop marks, flattened CMYK images
+            (grayscale for B&amp;W interiors).
+            <span class="k">Drafts always export (watermarked)</span>; production files must pass
+            every check.
+          </p>
+        </div>
+        <div class="card" data-sec="zh">
+          <h3>本地与隐私</h3>
+          <p>
+            只监听 127.0.0.1；无账号、无云端、无遥测；API Key 只存在本机文件。不配 Key
+            也完全可用——<span class="k">导入自己的图即可</span>。
+          </p>
+        </div>
+        <div class="card" data-sec="en">
+          <h3>Local &amp; private</h3>
+          <p>
+            Listens on 127.0.0.1 only; no accounts, cloud or telemetry; your API key stays in a
+            local file. Works fully without one — <span class="k">just import your own art</span>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap" data-sec="zh">
+        <h2 class="serif">常见问题</h2>
+        <p class="lede">回答最多人问的五件事。</p>
+      </div>
+      <div class="wrap" data-sec="en">
+        <h2 class="serif">FAQ</h2>
+        <p class="lede">The five things people ask most.</p>
+      </div>
+      <div class="wrap" data-sec="zh">
+        <details open>
+          <summary>免费吗？</summary>
+          <p>
+            MIT
+            开源、完全免费。如果你接了自己的生图接口，费用由你的服务商按其规则收取——工具本身不收费也不经手付款。
+          </p>
+        </details>
+        <details>
+          <summary>它会替我上传或发布到 KDP 吗？</summary>
+          <p>
+            不会，这是有意的。它导出两份 PDF 和一份上传说明（列明在 KDP 要选的参数），上传、Print
+            Previewer 检查和 AI 内容申报都由你亲手完成。
+          </p>
+        </details>
+        <details>
+          <summary>必须用 AI 生图吗？</summary>
+          <p>
+            不必。不配置任何 Key 也能用全部排版、校验与导出功能，插画全部手工导入即可。AI
+            只是把"生成候选"这一步变方便。
+          </p>
+        </details>
+        <details>
+          <summary>界面是什么语言？</summary>
+          <p>
+            目前中文优先，README
+            有完整英文说明，国际化在路线图上。规格、代码与文档对英文用户友好，欢迎 PR。
+          </p>
+        </details>
+        <details>
+          <summary>系统要求？</summary>
+          <p>
+            Node.js 24（22.14+ 兼容）。在 macOS 上开发验证，Linux 应当可用，Windows
+            暂未测试。只监听本机地址，不暴露到网络。
+          </p>
+        </details>
+      </div>
+      <div class="wrap" data-sec="en">
+        <details open>
+          <summary>Is it free?</summary>
+          <p>
+            Yes — MIT licensed. If you hook up your own image API, your provider bills you directly;
+            the tool itself never charges or handles payments.
+          </p>
+        </details>
+        <details>
+          <summary>Does it upload or publish to KDP for me?</summary>
+          <p>
+            No, deliberately. It exports two PDFs plus an upload-notes file listing the exact KDP
+            options to pick. The upload, Print Previewer check and AI-content declaration stay in
+            your hands.
+          </p>
+        </details>
+        <details>
+          <summary>Do I have to use AI illustrations?</summary>
+          <p>
+            No. Everything (layout, validation, export) works with zero API keys — import your own
+            artwork. AI is just an optional convenience for generating candidates.
+          </p>
+        </details>
+        <details>
+          <summary>What language is the UI in?</summary>
+          <p>
+            Chinese-first for now, with a full English README; i18n is on the roadmap. Specs, code
+            and docs are English-friendly; PRs welcome.
+          </p>
+        </details>
+        <details>
+          <summary>System requirements?</summary>
+          <p>
+            Node.js 24 (22.14+ compatible). Developed and tested on macOS; Linux should work;
+            Windows untested. Listens on localhost only — never exposed to the network.
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <div class="links" data-sec="zh">
+          <a href="https://github.com/anmutu/kdp-helper" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://github.com/anmutu/kdp-helper/releases" target="_blank" rel="noreferrer"
+            >发布</a
+          >
+          <a
+            href="https://github.com/anmutu/kdp-helper/blob/main/README.md"
+            target="_blank"
+            rel="noreferrer"
+            >文档</a
+          >
+          <a
+            href="https://github.com/anmutu/kdp-helper/blob/main/docs/requirements.md"
+            target="_blank"
+            rel="noreferrer"
+            >需求与验证记录</a
+          >
+        </div>
+        <div class="links" data-sec="en">
+          <a href="https://github.com/anmutu/kdp-helper" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://github.com/anmutu/kdp-helper/releases" target="_blank" rel="noreferrer"
+            >Releases</a
+          >
+          <a
+            href="https://github.com/anmutu/kdp-helper/blob/main/README.md"
+            target="_blank"
+            rel="noreferrer"
+            >Docs</a
+          >
+          <a
+            href="https://github.com/anmutu/kdp-helper/blob/main/docs/verification.md"
+            target="_blank"
+            rel="noreferrer"
+            >Verification log</a
+          >
+        </div>
+        <p>
+          代码 MIT；内置 Noto Sans CJK 字体遵循 OFL。本工具与 Amazon 无官方关系；KDP 是 Amazon.com,
+          Inc. 的商标。印刷前请以官方文档为准。
+        </p>
+        <p>
+          Code under MIT; bundled Noto Sans CJK font under OFL. Not affiliated with Amazon; KDP is a
+          trademark of Amazon.com, Inc. Always verify against official KDP documentation.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
