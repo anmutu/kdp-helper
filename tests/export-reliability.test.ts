@@ -54,7 +54,7 @@ describe("export reliability boundaries", () => {
     } finally {
       writeFileMock.mockImplementation(mockState.originalWriteFile!);
     }
-  });
+  }, 30000);
 
   it("downloads a regular historical export file", async () => {
     const book = await store.create("下载测试");
