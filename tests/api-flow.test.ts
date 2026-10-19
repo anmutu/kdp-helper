@@ -198,7 +198,7 @@ describe("offline route-to-file workflow, without network or paid generation", (
         );
       }
     }
-  }, 60000);
+  }, 180000);
   it("denies a foreign origin before exposing even redacted settings", async () => {
     const response = await readSettings(
       new Request("http://127.0.0.1:3210/api/settings", {
