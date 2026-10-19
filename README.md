@@ -1,8 +1,29 @@
 # 绘本工坊 · KDP Helper
 
+[![CI](https://github.com/anmutu/kdp-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/anmutu/kdp-helper/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 给作者自己使用的本地绘本工作台。先确认来自 KDP 官方文档的出版规格，再整理页面、生图或导入素材、挑选排版，最后导出内页 PDF 和完整封面 PDF。
 
 没有注册、会员、收费平台或云同步。外部模型调用仍可能按你的服务商规则收费。
+
+## English
+
+**KDP Helper** is a local-first, single-author workbench for making print-ready children's picture books for [Amazon KDP](https://kdp.amazon.com). It walks you through the whole loop: pick a verified print spec (trim / ink / paper / bleed) → write pages (manually, from a template, or with a text model) → generate or import illustrations → compare and pick candidates → lay out text and cover → export a validated `interior.pdf` + wraparound `cover.pdf` + upload notes.
+
+Why authors like it:
+
+- **Spec-first, never guess.** Page ranges, spine width, bleed geometry, margins and 300-DPI pixel requirements come from official KDP documentation with checked dates and source links (`src/domain/print-spec.ts`). Black & white (white/cream paper) and premium/standard color are supported across four trim sizes.
+- **Money guardrails.** It refuses paid generation calls when requested pixels can't print, pauses a batch as soon as a low-resolution image comes back, never auto-retries uncertain billed requests, and estimates per-book printing cost and US royalty (including the $9.98/$9.99 royalty-rate breakpoint).
+- **Real files, real checks.** Exports are actual PDFs with an embedded CJK font, crop-mark free, CMYK-flattened images; odd page counts, missing glyphs, text overflow, low DPI and placeholder text block the production export.
+- **Local and private.** Everything lives on your machine (`data/`); your API key never leaves the local settings file. Works fully offline if you import your own images.
+
+```bash
+npm install
+npm run dev   # http://127.0.0.1:3210 — local access only
+```
+
+License: code under [MIT](LICENSE); the bundled Noto Sans CJK SC font under its own [OFL license](assets/fonts/OFL.txt). This project is not affiliated with Amazon; always verify current rules against official KDP documentation before printing.
 
 ## 启动
 

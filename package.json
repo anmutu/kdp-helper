@@ -1,7 +1,6 @@
 {
   "name": "kdp-helper",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3210",
@@ -30,5 +29,25 @@
     "eslint-config-next": "16.3.5",
     "typescript": "6.0.3",
     "vitest": "5.0.1"
-  }
+  },
+  "description": "Local-first workbench for making print-ready children's picture books for Amazon KDP (specs, AI illustration, layout, PDF export).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anmutu/kdp-helper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/anmutu/kdp-helper/issues"
+  },
+  "keywords": [
+    "kdp",
+    "amazon-kdp",
+    "picture-book",
+    "childrens-book",
+    "self-publishing",
+    "print-on-demand",
+    "pdf",
+    "nextjs",
+    "typescript"
+  ]
 }
