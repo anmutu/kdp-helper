@@ -27,6 +27,8 @@ npm run dev   # http://127.0.0.1:3210 — local access only
 
 License: code under [MIT](LICENSE); the bundled Noto Sans CJK SC font under its own [OFL license](assets/fonts/OFL.txt). This project is not affiliated with Amazon; always verify current rules against official KDP documentation before printing.
 
+![工作台界面 · The workbench](site/assets/screenshots/01-spec-content.jpg)
+
 ## 启动
 
 需要 Node.js 22.14 或更新的兼容版本；本次开发验证环境为 Node.js 24。

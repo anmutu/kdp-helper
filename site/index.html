@@ -272,6 +272,57 @@
         flex-wrap: wrap;
         margin-bottom: 14px;
       }
+      .shots {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+        gap: 20px;
+      }
+      .shots figure {
+        margin: 0;
+      }
+      .shots img {
+        width: 100%;
+        display: block;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(31, 38, 32, 0.06);
+      }
+      .shots figcaption {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      .usage {
+        counter-reset: step;
+        display: grid;
+        gap: 14px;
+        max-width: 640px;
+        padding: 0;
+      }
+      .usage li {
+        list-style: none;
+        display: flex;
+        gap: 14px;
+        align-items: baseline;
+      }
+      .usage li::before {
+        counter-increment: step;
+        content: counter(step, decimal-leading-zero);
+        font-family: Georgia, serif;
+        color: var(--accent);
+        font-size: 13px;
+        letter-spacing: 0.1em;
+      }
+      .local-note {
+        background: #fffdf8;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 20px;
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 22px;
+        max-width: 640px;
+      }
       @media (max-width: 640px) {
         header.hero {
           padding-top: 66px;
@@ -432,6 +483,73 @@
 
     <section>
       <div class="wrap" data-sec="zh">
+        <h2 class="serif">产品界面</h2>
+        <p class="lede">工作台的真实截图（演示绘本《森林小径》，插画为本站演示用的程序生成图）。</p>
+      </div>
+      <div class="wrap" data-sec="en">
+        <h2 class="serif">The workbench</h2>
+        <p class="lede">
+          Real screenshots of the app (demo book "森林小径"; illustrations are programmatically
+          generated for this demo).
+        </p>
+      </div>
+      <div class="wrap shots">
+        <figure>
+          <img
+            src="assets/screenshots/01-spec-content.jpg"
+            alt="规格与内容步骤：开本、墨水、纸张选择与页面清单"
+            loading="lazy"
+          />
+          <figcaption data-sec="zh">
+            第一步 · 规格与内容：印刷参数即时联动页数、成本与版税试算
+          </figcaption>
+          <figcaption data-sec="en">
+            Step 1 · Specs &amp; content: print options drive page ranges, cost and royalty
+            estimates
+          </figcaption>
+        </figure>
+        <figure>
+          <img
+            src="assets/screenshots/02-candidates.jpg"
+            alt="候选图片网格：缩略图、DPI 与来源标注"
+            loading="lazy"
+          />
+          <figcaption data-sec="zh">
+            第二步 · 生成与选图：候选并排对比，实际像素与有效 DPI 始终可见
+          </figcaption>
+          <figcaption data-sec="en">
+            Step 2 · Candidates: side-by-side compare with real pixels and effective DPI
+          </figcaption>
+        </figure>
+        <figure>
+          <img
+            src="assets/screenshots/03-cover-layout.jpg"
+            alt="封面与封底展开预览与排版参数"
+            loading="lazy"
+          />
+          <figcaption data-sec="zh">第三步 · 排版与封面：完整展开封面按最终页数联动计算</figcaption>
+          <figcaption data-sec="en">
+            Step 3 · Layout &amp; cover: the wraparound cover follows the final page count
+          </figcaption>
+        </figure>
+        <figure>
+          <img
+            src="assets/screenshots/04-export.jpg"
+            alt="检查与导出：文件检查清单与导出操作"
+            loading="lazy"
+          />
+          <figcaption data-sec="zh">
+            第四步 · 检查与导出：问题定位到页，正式导出前全部拦截
+          </figcaption>
+          <figcaption data-sec="en">
+            Step 4 · Validate &amp; export: issues point to pages; problems block production export
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap" data-sec="zh">
         <h2 class="serif">它认真对待你的钱和你的书</h2>
         <p class="lede">工具不替你做决定，但绝不让你白花钱或交出印不了的文件。</p>
       </div>
@@ -521,6 +639,36 @@
             local file. Works fully without one — <span class="k">just import your own art</span>.
           </p>
         </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap" data-sec="zh">
+        <h2 class="serif">如何使用</h2>
+        <p class="lede">三步开始，全程在本机运行。</p>
+        <ol class="usage">
+          <li>获取代码：<code>git clone https://github.com/anmutu/kdp-helper.git</code></li>
+          <li>安装依赖：<code>npm install</code>（需要 Node.js 24，22.14+ 兼容）</li>
+          <li>启动：<code>npm run dev</code>，浏览器打开 <code>http://127.0.0.1:3210</code></li>
+        </ol>
+        <p class="local-note">
+          为什么是本地运行而不是在线服务？你的书稿、候选插画与 API Key
+          只存在自己电脑上，工具只监听本机地址——没有账号、没有云端、没有遥测。这是它隐私承诺的基础，也是设计选择。
+        </p>
+      </div>
+      <div class="wrap" data-sec="en">
+        <h2 class="serif">Getting started</h2>
+        <p class="lede">Three steps, all on your machine.</p>
+        <ol class="usage">
+          <li>Get the code: <code>git clone https://github.com/anmutu/kdp-helper.git</code></li>
+          <li>Install: <code>npm install</code> (Node.js 24; 22.14+ compatible)</li>
+          <li>Run: <code>npm run dev</code> and open <code>http://127.0.0.1:3210</code></li>
+        </ol>
+        <p class="local-note">
+          Why local instead of a hosted app? Your manuscripts, candidate illustrations and API key
+          stay on your own computer, and the app only listens on localhost — no accounts, no cloud,
+          no telemetry. That privacy promise is the design, not a limitation.
+        </p>
       </div>
     </section>
 
