@@ -323,6 +323,23 @@
         margin-top: 22px;
         max-width: 640px;
       }
+      .local-open {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+      .local-status {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .local-status.running {
+        color: var(--accent-deep);
+      }
+      .local-status.stopped {
+        color: var(--warn);
+      }
       @media (max-width: 640px) {
         header.hero {
           padding-top: 66px;
@@ -356,12 +373,13 @@
           绘本工作台：印刷规格、插画、排版、导出，全流程在本机完成。每一条印刷规则都来自官方文档并标注核对日期——<strong>绝不猜测</strong>。
         </p>
         <div class="cta">
+          <button type="button" class="btn primary" data-open-local>打开工作台</button>
           <a
-            class="btn primary"
+            class="btn"
             href="https://github.com/anmutu/kdp-helper"
             target="_blank"
             rel="noreferrer"
-            >前往 GitHub 仓库</a
+            >GitHub 仓库</a
           >
           <a
             class="btn"
@@ -388,8 +406,9 @@
           documentation with a source link and a checked date — <strong>nothing is guessed</strong>.
         </p>
         <div class="cta">
+          <button type="button" class="btn primary" data-open-local>Open the workbench</button>
           <a
-            class="btn primary"
+            class="btn"
             href="https://github.com/anmutu/kdp-helper"
             target="_blank"
             rel="noreferrer"
@@ -642,10 +661,14 @@
       </div>
     </section>
 
-    <section>
+    <section id="usage">
       <div class="wrap" data-sec="zh">
         <h2 class="serif">如何使用</h2>
         <p class="lede">三步开始，全程在本机运行。</p>
+        <div class="local-open">
+          <button type="button" class="btn primary" data-open-local>打开本地工作台</button>
+          <span class="local-status" data-local-status="zh">正在检测本机服务…</span>
+        </div>
         <ol class="usage">
           <li>获取代码：<code>git clone https://github.com/anmutu/kdp-helper.git</code></li>
           <li>安装依赖：<code>npm install</code>（需要 Node.js 24，22.14+ 兼容）</li>
@@ -659,6 +682,12 @@
       <div class="wrap" data-sec="en">
         <h2 class="serif">Getting started</h2>
         <p class="lede">Three steps, all on your machine.</p>
+        <div class="local-open">
+          <button type="button" class="btn primary" data-open-local>
+            Open the local workbench
+          </button>
+          <span class="local-status" data-local-status="en">Detecting the local service…</span>
+        </div>
         <ol class="usage">
           <li>Get the code: <code>git clone https://github.com/anmutu/kdp-helper.git</code></li>
           <li>Install: <code>npm install</code> (Node.js 24; 22.14+ compatible)</li>
@@ -806,5 +835,57 @@
         </p>
       </div>
     </footer>
+    <script>
+      // 「打开工作台」：探测本机 127.0.0.1:3210 是否在运行（no-cors 连通性探测，
+      // 不读取任何数据）；运行中直接打开，未运行则引导到下方三步启动。
+      (() => {
+        const LOCAL_URL = "http://127.0.0.1:3210";
+        const STATUS_TEXT = {
+          checking: ["正在检测本机服务…", "Detecting the local service…"],
+          running: [
+            "● 已检测到本机服务，点击即可打开工作台",
+            "● Local service detected — click to open the workbench",
+          ],
+          stopped: [
+            "○ 未检测到本机服务，请先按下面三步启动（装过的话双击项目里的「启动绘本工坊.command」即可）",
+            "○ No local service detected — start it with the three steps below",
+          ],
+        };
+        let localRunning = false;
+        const render = (state) => {
+          document.querySelectorAll("[data-local-status]").forEach((el) => {
+            el.classList.remove("checking", "running", "stopped");
+            el.classList.add(state);
+            el.textContent = STATUS_TEXT[state][el.dataset.localStatus === "en" ? 1 : 0];
+          });
+        };
+        const probe = async () => {
+          try {
+            await fetch(LOCAL_URL + "/", { mode: "no-cors", signal: AbortSignal.timeout(1600) });
+            return true;
+          } catch {
+            return false;
+          }
+        };
+        const refresh = async () => {
+          render("checking");
+          localRunning = await probe();
+          render(localRunning ? "running" : "stopped");
+        };
+        document.querySelectorAll("[data-open-local]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            if (localRunning) {
+              window.open(LOCAL_URL, "_blank", "noreferrer");
+              return;
+            }
+            document.getElementById("usage")?.scrollIntoView({ behavior: "smooth" });
+          });
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) void refresh();
+        });
+        void refresh();
+      })();
+    </script>
   </body>
 </html>
