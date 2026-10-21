@@ -340,6 +340,9 @@
       .local-status.stopped {
         color: var(--warn);
       }
+      .local-fallback {
+        font-size: 13px;
+      }
       @media (max-width: 640px) {
         header.hero {
           padding-top: 66px;
@@ -373,7 +376,14 @@
           绘本工作台：印刷规格、插画、排版、导出，全流程在本机完成。每一条印刷规则都来自官方文档并标注核对日期——<strong>绝不猜测</strong>。
         </p>
         <div class="cta">
-          <button type="button" class="btn primary" data-open-local>打开工作台</button>
+          <a
+            class="btn primary"
+            data-open-local
+            href="http://127.0.0.1:3210"
+            target="_blank"
+            rel="noreferrer"
+            >打开工作台</a
+          >
           <a
             class="btn"
             href="https://github.com/anmutu/kdp-helper"
@@ -406,7 +416,14 @@
           documentation with a source link and a checked date — <strong>nothing is guessed</strong>.
         </p>
         <div class="cta">
-          <button type="button" class="btn primary" data-open-local>Open the workbench</button>
+          <a
+            class="btn primary"
+            data-open-local
+            href="http://127.0.0.1:3210"
+            target="_blank"
+            rel="noreferrer"
+            >Open the workbench</a
+          >
           <a
             class="btn"
             href="https://github.com/anmutu/kdp-helper"
@@ -666,8 +683,24 @@
         <h2 class="serif">如何使用</h2>
         <p class="lede">三步开始，全程在本机运行。</p>
         <div class="local-open">
-          <button type="button" class="btn primary" data-open-local>打开本地工作台</button>
-          <span class="local-status" data-local-status="zh">正在检测本机服务…</span>
+          <a
+            class="btn primary"
+            data-open-local
+            href="http://127.0.0.1:3210"
+            target="_blank"
+            rel="noreferrer"
+            >打开本地工作台</a
+          >
+          <span class="local-status" data-local-status="zh">正在检测本机服务…</span
+          ><a
+            class="local-fallback"
+            data-local-fallback="zh"
+            href="http://127.0.0.1:3210"
+            target="_blank"
+            rel="noreferrer"
+            hidden
+            >仍要直接打开 →</a
+          >
         </div>
         <ol class="usage">
           <li>获取代码：<code>git clone https://github.com/anmutu/kdp-helper.git</code></li>
@@ -683,10 +716,24 @@
         <h2 class="serif">Getting started</h2>
         <p class="lede">Three steps, all on your machine.</p>
         <div class="local-open">
-          <button type="button" class="btn primary" data-open-local>
-            Open the local workbench
-          </button>
-          <span class="local-status" data-local-status="en">Detecting the local service…</span>
+          <a
+            class="btn primary"
+            data-open-local
+            href="http://127.0.0.1:3210"
+            target="_blank"
+            rel="noreferrer"
+            >Open the local workbench</a
+          >
+          <span class="local-status" data-local-status="en">Detecting the local service…</span
+          ><a
+            class="local-fallback"
+            data-local-fallback="en"
+            href="http://127.0.0.1:3210"
+            target="_blank"
+            rel="noreferrer"
+            hidden
+            >Open anyway →</a
+          >
         </div>
         <ol class="usage">
           <li>Get the code: <code>git clone https://github.com/anmutu/kdp-helper.git</code></li>
@@ -858,6 +905,9 @@
             el.classList.add(state);
             el.textContent = STATUS_TEXT[state][el.dataset.localStatus === "en" ? 1 : 0];
           });
+          document
+            .querySelectorAll("[data-local-fallback]")
+            .forEach((el) => el.toggleAttribute("hidden", state !== "stopped"));
         };
         const probe = async () => {
           try {
@@ -872,12 +922,10 @@
           localRunning = await probe();
           render(localRunning ? "running" : "stopped");
         };
-        document.querySelectorAll("[data-open-local]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            if (localRunning) {
-              window.open(LOCAL_URL, "_blank", "noreferrer");
-              return;
-            }
+        document.querySelectorAll("[data-open-local]").forEach((el) => {
+          el.addEventListener("click", (event) => {
+            if (localRunning) return;
+            event.preventDefault();
             document.getElementById("usage")?.scrollIntoView({ behavior: "smooth" });
           });
         });
