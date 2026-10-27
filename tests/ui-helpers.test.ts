@@ -13,6 +13,7 @@ import {
   issueStage,
   request,
   RequestError,
+  deriveOnboarding,
 } from "../src/components/workbench/ui-helpers";
 import {
   prepareGenerationIntent,
@@ -268,5 +269,53 @@ describe("duplicate page", () => {
     expect(copy.candidates).toEqual([]);
     expect(copy.selectedAssetId).toBeNull();
     expect(copy.imageConfirmed).toBe(false);
+  });
+});
+
+describe("onboarding checklist", () => {
+  const asset = {
+    id: crypto.randomUUID(),
+    width: 2800,
+    height: 2800,
+    mime: "image/png" as const,
+    createdAt: new Date().toISOString(),
+    source: "import" as const,
+    prompt: "",
+    model: "",
+  };
+  it("derives the six tasks and their done states from book + service flags", () => {
+    const book = createBook("引导测试");
+    let tasks = deriveOnboarding(book, { hasKey: false, hasDraftExport: false });
+    expect(tasks.map((t) => t.id)).toEqual([
+      "spec",
+      "pages",
+      "service",
+      "images",
+      "cover",
+      "draft",
+    ]);
+    expect(tasks.every((t) => !t.done)).toBe(true);
+    expect(tasks.find((t) => t.id === "service")!.optional).toBe(true);
+    expect(tasks.find((t) => t.id === "service")!.why).toContain("API Key");
+
+    book.specConfirmed = true;
+    book.pages = Array.from({ length: 24 }, () => ({ ...newPage(), kind: "blank" as const }));
+    tasks = deriveOnboarding(book, { hasKey: true, hasDraftExport: true });
+    expect(tasks.find((t) => t.id === "spec")!.done).toBe(true);
+    expect(tasks.find((t) => t.id === "pages")!.done).toBe(true);
+    expect(tasks.find((t) => t.id === "service")!.done).toBe(true);
+    expect(tasks.find((t) => t.id === "draft")!.done).toBe(true);
+    expect(tasks.find((t) => t.id === "images")!.done).toBe(false);
+
+    book.pages[0] = {
+      ...newPage(),
+      kind: "illustration" as const,
+      candidates: [asset],
+      selectedAssetId: asset.id,
+      imageConfirmed: true,
+    };
+    book.cover = { ...book.cover, title: "T", author: "A", selectedAssetId: asset.id };
+    tasks = deriveOnboarding(book, { hasKey: true, hasDraftExport: true });
+    expect(tasks.every((t) => t.done)).toBe(true);
   });
 });

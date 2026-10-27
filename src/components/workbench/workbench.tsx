@@ -8,6 +8,7 @@ import {
   BookOpen,
   Check,
   CircleAlert,
+  Compass,
   Download,
   FileCheck2,
   LayoutTemplate,
@@ -28,6 +29,7 @@ import { ExportStage } from "./export-stage";
 import { Field, Modal } from "./controls";
 import { SettingsDialog } from "./settings-dialog";
 import { downloadDraft, issueStage, jobIsInFlight } from "./ui-helpers";
+import { ONBOARDING_HIDE_KEY, OnboardingCard } from "./onboarding";
 import { useWorkbench } from "./use-workbench";
 import { BackupDialog } from "./backup-dialog";
 
@@ -123,6 +125,13 @@ export default function Workbench() {
   const [selectedId, setSelectedId] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(() => {
+    try {
+      return localStorage.getItem(ONBOARDING_HIDE_KEY) !== "1";
+    } catch {
+      return true;
+    }
+  });
   const [newOpen, setNewOpen] = useState(false);
   const [name, setName] = useState("");
   const [trim, setTrim] = useState<PrintConfig["trim"]>("8.5x8.5");
@@ -154,6 +163,17 @@ export default function Workbench() {
   function navigate(next: number) {
     setStage(next);
     window.scrollTo({ top: 0, behavior: "auto" });
+  }
+  function toggleGuide() {
+    setGuideOpen((visible) => {
+      const next = !visible;
+      try {
+        localStorage.setItem(ONBOARDING_HIDE_KEY, next ? "0" : "1");
+      } catch {
+        /* 本地存储不可用时仅本次会话内生效 */
+      }
+      return next;
+    });
   }
   return (
     <div className="workbench-shell">
@@ -209,6 +229,12 @@ export default function Workbench() {
             <Archive size={18} />
             备份与恢复
           </button>
+          {book && (
+            <button className="settings-button" aria-pressed={guideOpen} onClick={toggleGuide}>
+              <Compass size={18} />
+              新手引导{guideOpen ? " · 显示中" : ""}
+            </button>
+          )}
           <span className="sidebar-footnote">
             作者的印刷工作台
             <br />
@@ -299,6 +325,16 @@ export default function Workbench() {
               <span>/ 04</span>
             </span>
           </div>
+          {book && guideOpen && (
+            <OnboardingCard
+              book={book}
+              navigate={(target) => {
+                if (target === "settings") setSettingsOpen(true);
+                else navigate(target);
+              }}
+              onClose={toggleGuide}
+            />
+          )}
           {store.projectProblems.length > 0 && (
             <section role="status" className="notice">
               <strong>{store.projectProblems.length} 个项目暂时无法读取，其他绘本仍可使用</strong>
@@ -441,6 +477,9 @@ export default function Workbench() {
                     </button>
                   </fieldset>
                 </form>
+                <p className="field-hint">
+                  第一次使用？创建绘本后会有一张「新手引导」任务卡，带你按顺序走完做书全程；详细说明见项目里的《使用手册》。
+                </p>
                 <div className="source-line">
                   <span>规格核对 {RULES.checkedAt}</span>
                   <a href={RULES.manuscriptUrl} target="_blank" rel="noreferrer">

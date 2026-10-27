@@ -32,6 +32,7 @@ import {
   sizeLabel,
 } from "@/domain/print-spec";
 import { Field, Modal, UploadButton } from "./controls";
+import { StageWhy } from "./onboarding";
 import { PagePreview } from "./book-preview";
 import { duplicatePage, movePage, type BookEdit } from "./ui-helpers";
 import type { Workbench } from "./use-workbench";
@@ -417,6 +418,10 @@ export function ContentStage({
   }
   return (
     <div className="stage-stack">
+      <StageWhy>
+        为什么第一步是定规格？印刷厂按「开本 × 墨水 ×
+        纸张」执行：页数范围、书脊厚度、装订边、每张图至少多少像素，全都由它决定。先定规格再动手，避免画完才发现印不了；中途改规格，后面的确认会自动失效——这是防止新旧参数混用，不是bug。
+      </StageWhy>
       <SpecEditor book={book} edit={edit} disabled={locked} saveState={store.saveState} />
       <section className="panel">
         <div className="section-heading">

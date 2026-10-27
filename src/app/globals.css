@@ -2008,3 +2008,136 @@ summary {
 .compare-column .page-metrics {
   justify-content: center;
 }
+
+/* 新手领路人：任务卡 + 阶段导语（GLM-5.3-Flash） */
+.onboarding-card {
+  background: #fffdf8;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 14px 18px 16px;
+  margin-bottom: 18px;
+}
+.onboarding-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.onboarding-head strong {
+  font-size: 14px;
+}
+.onboarding-count {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.onboarding-progress {
+  flex: 1;
+  height: 6px;
+  margin: 0 6px;
+  background: var(--paper-deep, #efe8db);
+  background: #efe8db;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.onboarding-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.3s ease;
+}
+.onboarding-done {
+  margin: 10px 2px 2px;
+  font-size: 12.5px;
+  color: var(--color-accent);
+}
+.onboarding-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+.onboarding-item {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.onboarding-item:hover:not(:disabled) {
+  border-color: var(--color-line);
+  background: #fbf8f1;
+}
+.onboarding-item .ob-check {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+.onboarding-item .ob-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-line);
+}
+.onboarding-item.done .ob-dot {
+  background: var(--color-accent);
+}
+.onboarding-item .ob-body {
+  flex: 1;
+  min-width: 0;
+}
+.onboarding-item .ob-body strong {
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.onboarding-item .why {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--color-muted);
+}
+.ob-tag {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--color-muted);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  padding: 0 5px;
+}
+.ob-go {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--color-accent);
+  margin-top: 2px;
+}
+.stage-why {
+  border: 1px dashed var(--color-line);
+  border-radius: 10px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+}
+.stage-why summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--color-muted);
+  user-select: none;
+}
+.stage-why[open] summary {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.stage-why-body {
+  font-size: 12.5px;
+  color: var(--color-muted);
+  line-height: 1.85;
+  padding-top: 8px;
+}

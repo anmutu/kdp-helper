@@ -9,6 +9,7 @@ import {
   sizeLabel,
 } from "@/domain/print-spec";
 import { Field } from "./controls";
+import { StageWhy } from "./onboarding";
 import { CoverPreview, PagePreview } from "./book-preview";
 import { PageList, PageMetrics } from "./content-stage";
 import { CoverCandidates, GenerateControls, JobPanel } from "./generation-stage";
@@ -49,6 +50,11 @@ export function LayoutStage({
   const coverAsset = selectedAsset(book.cover);
   return (
     <div className="stage-stack">
+      <StageWhy>
+        为什么现在才排版？封面宽度 = 封底 + 书脊 +
+        封面，书脊厚度由最终页数算出，所以内容定稿后再做封面最稳。文字比例、裁切与颜色在这一步定型；屏幕预览只是近似，改完记得用第四步的草稿
+        PDF 验收。
+      </StageWhy>
       <div className="tab-switch" role="group" aria-label="排版对象">
         <button aria-pressed={tab === "pages"} onClick={() => setTab("pages")}>
           内页排版
