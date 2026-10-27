@@ -3,6 +3,7 @@ import { ArrowUpRight, Check, Download, FileCheck2, TriangleAlert } from "lucide
 import type { Book, ExportResult, Issue } from "@/domain/book";
 import { coverGeometry, pageGeometry, sizeLabel, validateBook } from "@/domain/print-spec";
 import { Field } from "./controls";
+import { StageWhy } from "./onboarding";
 import { exportIssues, type ExportTarget } from "./ui-helpers";
 import type { Workbench } from "./use-workbench";
 import { ExportHistoryList } from "./export-history";
@@ -48,6 +49,11 @@ export function ExportStage({
   }
   return (
     <div className="stage-stack">
+      <StageWhy>
+        为什么最后还要检查？屏幕预览 ≠
+        印刷结果。工具按官方规则拦下奇数页、低清、文字溢出、缺字等问题；草稿带水印、随时可导出核对。全部通过只代表工具视角无误——上传后仍要用
+        KDP 的 Print Previewer 复查，正式发行前建议订购样书。
+      </StageWhy>
       <section className="panel export-summary">
         <div>
           <span className="eyebrow">交给印刷之前</span>

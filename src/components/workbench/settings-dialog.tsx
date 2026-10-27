@@ -60,6 +60,11 @@ export function SettingsDialog({ book, close }: { book: Book | null; close: () =
   return (
     <Modal title="连接与模型设置" close={close} busy={busy}>
       <p className="muted">密钥仅交给本地服务保存，不回显。保存设置不会发起付费调用。</p>
+      <p className="field-hint">
+        这一页是干什么的？插画由你自己的 AI 服务生成，工具只代为调用：API
+        地址告诉工具「调哪里」，API Key 是你的身份凭证——没有 Key，服务会拒绝出图。
+        两者都完全可选：不配置就用「导入图片」＋ 手写文案，其余功能照常。
+      </p>
       {error && (
         <p role="alert" className="notice error">
           {error}

@@ -6,10 +6,76 @@ import {
   type Issue,
   type Job,
 } from "@/domain/book";
-import { reconcileBook } from "@/domain/print-spec";
+import { pageRange, reconcileBook } from "@/domain/print-spec";
 
 export type BookEdit = (draft: Book) => void;
 export type ExportTarget = "all" | "interior";
+
+export type OnboardingTask = {
+  id: string;
+  title: string;
+  why: string;
+  target: number | "settings";
+  optional?: boolean;
+  done: boolean;
+};
+
+// 新手引导任务卡的状态推导（纯函数，供 OnboardingCard 与测试使用）。
+// 每项的 why 就是「这一步为什么存在」——给没接触过印刷/生图配置的人看。
+export function deriveOnboarding(
+  book: Book,
+  flags: { hasKey: boolean; hasDraftExport: boolean },
+): OnboardingTask[] {
+  const illustrationPages = book.pages.filter((page) => page.kind === "illustration");
+  const minimumPages = pageRange(book.config).min;
+  return [
+    {
+      id: "spec",
+      title: "核对印刷规格",
+      why: "开本、墨水、纸张决定页数范围、书脊厚度和每张图至少需要的像素。先定规格再动手，避免画完才发现印不了；中途改规格会让后面的确认自动失效，防止新旧参数混用。",
+      target: 0,
+      done: book.specConfirmed,
+    },
+    {
+      id: "pages",
+      title: "写好每一页",
+      why: `KDP 要求偶数页，你选的印刷组合最少 ${minimumPages} 页；页数直接影响书脊宽度与单册印刷成本。奇数页时第一步的页面清单会提供一键补白。`,
+      target: 0,
+      done: book.pages.length >= minimumPages,
+    },
+    {
+      id: "service",
+      title: "连接生图服务",
+      why: "插画由你自己的 AI 服务生成：API 地址告诉工具「调哪里」，API Key 是你的身份凭证——没有 Key 服务会拒绝出图。费用由服务商收取，工具不经手付款。也完全可以不配置：每页改用「导入图片」。",
+      target: "settings",
+      optional: true,
+      done: flags.hasKey,
+    },
+    {
+      id: "images",
+      title: "为图文页挑选插画",
+      why: "每页从候选里选一张并确认，这张图才算「定稿」。改动提示词或画风后需重新确认——防止画面和文字对不上；确认失效不会自动花钱重画。",
+      target: 1,
+      done:
+        illustrationPages.length > 0 &&
+        illustrationPages.every((page) => page.selectedAssetId && page.imageConfirmed),
+    },
+    {
+      id: "cover",
+      title: "完成封面",
+      why: "封面是一张完整展开图（封底+书脊+封面），宽度随最终页数自动计算。封底右下角的空白是 KDP 贴条码的位置，必须留白；页数没定稿前封面尺寸会一直变。",
+      target: 2,
+      done: !!book.cover.title.trim() && !!book.cover.author.trim() && !!book.cover.selectedAssetId,
+    },
+    {
+      id: "draft",
+      title: "导出草稿 PDF 检查",
+      why: "屏幕预览只是近似。草稿带水印、即使有问题也照常导出，为的是让你在真实 PDF 里核对排版、字体与裁切；处理完拦截项再出可上传的正式文件。",
+      target: 3,
+      done: flags.hasDraftExport,
+    },
+  ];
+}
 
 export function exportIssues(
   issues: Issue[],

@@ -10,6 +10,7 @@ import {
   selectedAsset,
 } from "@/domain/print-spec";
 import { Field, Modal, UploadButton } from "./controls";
+import { StageWhy } from "./onboarding";
 import { PageList, PageMetrics } from "./content-stage";
 import { generationTargets, jobIsInFlight } from "./ui-helpers";
 import type { Workbench } from "./use-workbench";
@@ -240,6 +241,9 @@ export function CandidatePicker({
           <ImagePlus size={32} strokeWidth={1} />
           <h3>先有候选，再做选择</h3>
           <p>可以生成图片，也可以直接导入自己的 PNG / JPEG。</p>
+          <p>
+            还没有 API Key？到左侧「连接与模型设置」填好即可生图；或者一直用导入图片，无需任何配置。
+          </p>
         </div>
       )}
       {chosen && (
@@ -501,6 +505,10 @@ export function GenerationStage({
     book.pages.some((candidate) => candidate.kind === "illustration" && candidate.selectedAssetId);
   return (
     <div className="stage-stack">
+      <StageWhy>
+        为什么生成前有这么多确认？插画是按张付费的：先用「仅低清试画」花小钱定画风，满意后再批量出印刷图；请求尺寸不够
+        300 DPI 会被直接拦下、不发起付费调用，某张结果低了整批暂停——都是为了不白花钱。
+      </StageWhy>
       <div className="notice">
         你决定用哪一张。低清试画和印刷图使用同一个候选区，实际像素与有效 DPI 始终可见。
       </div>
