@@ -3,7 +3,7 @@
 [![CI](https://github.com/anmutu/kdp-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/anmutu/kdp-helper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-官网 / Website：**https://anmutu.github.io/kdp-helper/**
+官网 / Website：**https://anmutu.github.io/kdp-helper/** · 使用手册 / User guide：[docs/user-guide.md](docs/user-guide.md)
 
 给作者自己使用的本地绘本工作台。先确认来自 KDP 官方文档的出版规格，再整理页面、生图或导入素材、挑选排版，最后导出内页 PDF 和完整封面 PDF。
 
